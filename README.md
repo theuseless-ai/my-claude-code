@@ -40,6 +40,7 @@ A set of Claude Code native configurations (agents, skills, hooks, MCP servers) 
 | **Momus** | Plan reviewer — verifies executability, catches blockers | sonnet | Reviewer |
 | **Multimodal Looker** | PDF/image/diagram analysis | sonnet | Reader |
 | **Sisyphus Junior** | Focused implementation worker for scoped tasks | sonnet | Worker |
+| **Argus** | Autonomous PR review fixer — triages AI reviews, fixes CI, loops until clean | sonnet | Worker |
 
 ## Architecture
 
@@ -102,7 +103,7 @@ This triggers: metis → prometheus → momus → atlas
 
 ```
 .claude/
-├── agents/          # 11 agent definitions
+├── agents/          # 12 agent definitions
 ├── skills/          # 3 skill definitions
 ├── hooks/           # Hook scripts
 └── settings.json    # Hook wiring

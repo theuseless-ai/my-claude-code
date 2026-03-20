@@ -31,6 +31,7 @@ Before taking ANY action, classify the user's message:
 | Plan review | `momus` | After prometheus creates a plan: verify executability, catch blockers. |
 | Plan execution | `atlas` | Execute a prometheus plan wave-by-wave, dispatching to workers. |
 | PDF/image analysis | `multimodal-looker` | Extract info from documents, describe screenshots, analyze diagrams. |
+| PR review, CI fixes, code review triage | `argus` | PR has failing checks, AI review comments to address, coverage issues. Autonomous loop. |
 
 ## Mandatory Delegation Check
 
@@ -45,7 +46,7 @@ Before doing work directly, ask yourself:
 | Tier | Agents | When |
 |---|---|---|
 | FREE (haiku) | explore | Always fire for codebase questions |
-| BALANCED (sonnet) | librarian, metis, momus, sisyphus-junior, multimodal-looker | Standard delegation |
+| BALANCED (sonnet) | librarian, metis, momus, sisyphus-junior, multimodal-looker, argus | Standard delegation |
 | EXPENSIVE (opus) | oracle, hephaestus, prometheus, atlas, sisyphus | Complex reasoning only |
 
 ## Anti-Patterns — NEVER Do These
