@@ -436,7 +436,7 @@ do_uninstall() {
 
     # Confirm
     printf "  Remove oh-my-claudecode? Your other Claude Code settings will be preserved. (y/N) "
-    read -r confirm
+    read -r confirm < /dev/tty
     if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
         info "Aborted."
         exit 0
@@ -515,7 +515,7 @@ WARNING
 
     # Require typing 'yes'
     printf "  Type 'yes' to confirm (not just y): "
-    read -r confirm
+    read -r confirm < /dev/tty
     if [[ "$confirm" != "yes" ]]; then
         info "Aborted."
         exit 0
