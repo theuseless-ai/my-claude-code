@@ -37,8 +37,23 @@ if ! command -v jq &>/dev/null; then
 fi
 
 MODEL=$(echo "$JSON" | jq -r '.model.display_name // "unknown"' 2>/dev/null || echo "unknown")
-USED_PCT=$(echo "$JSON" | jq -r '.context_window.used_percentage // 0' 2>/dev/null || echo "0")
 AGENT_NAME=$(echo "$JSON" | jq -r '.agent.name // empty' 2>/dev/null || true)
+
+# Calculate context % ourselves to work around CC bug with 1M context sessions
+# CC sometimes reports used_percentage against 200K even when using 1M extended context
+CTX_SIZE=$(echo "$JSON" | jq -r '.context_window.context_window_size // 0' 2>/dev/null || echo "0")
+CTX_INPUT=$(echo "$JSON" | jq -r '.context_window.current_usage.input_tokens // 0' 2>/dev/null || echo "0")
+CTX_CACHE_CREATE=$(echo "$JSON" | jq -r '.context_window.current_usage.cache_creation_input_tokens // 0' 2>/dev/null || echo "0")
+CTX_CACHE_READ=$(echo "$JSON" | jq -r '.context_window.current_usage.cache_read_input_tokens // 0' 2>/dev/null || echo "0")
+
+if [[ "$CTX_SIZE" -gt 0 && "$CTX_INPUT" != "null" ]]; then
+    # Self-calculate: (input + cache_creation + cache_read) / context_window_size * 100
+    CTX_USED=$(( CTX_INPUT + CTX_CACHE_CREATE + CTX_CACHE_READ ))
+    USED_PCT=$(( CTX_USED * 100 / CTX_SIZE ))
+else
+    # Fallback to CC's reported percentage
+    USED_PCT=$(echo "$JSON" | jq -r '.context_window.used_percentage // 0' 2>/dev/null || echo "0")
+fi
 
 # Ensure USED_PCT is an integer
 USED_PCT=${USED_PCT%%.*}
@@ -46,6 +61,7 @@ USED_PCT=${USED_PCT:-0}
 if ! [[ "$USED_PCT" =~ ^[0-9]+$ ]]; then
     USED_PCT=0
 fi
+if (( USED_PCT > 100 )); then USED_PCT=100; fi
 
 # ---------------------------------------------------------------------------
 # Git branch
