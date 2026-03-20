@@ -2,6 +2,25 @@
 
 Multi-agent orchestration system for Claude Code, inspired by [oh-my-openagent](https://github.com/code-yeongyu/oh-my-openagent).
 
+## Install
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/theuseless-ai/my-claude-code/main/install.sh | bash
+```
+
+That's it. Agents, hooks, skills, status line, and Context7 MCP — all installed globally.
+
+```bash
+# Update to latest
+curl -fsSL https://raw.githubusercontent.com/theuseless-ai/my-claude-code/main/install.sh | bash -s -- --update
+
+# Uninstall (preserves your settings.json)
+curl -fsSL https://raw.githubusercontent.com/theuseless-ai/my-claude-code/main/install.sh | bash -s -- --uninstall
+
+# Clean install (wipes ~/.claude/ entirely, backs up first)
+curl -fsSL https://raw.githubusercontent.com/theuseless-ai/my-claude-code/main/install.sh | bash -s -- --clean
+```
+
 ## What This Is
 
 A set of Claude Code native configurations (agents, skills, hooks, MCP servers) that replicate the multi-agent orchestration workflow from oh-my-openagent — adapted for Claude Code's primitives.
