@@ -200,6 +200,45 @@ merge_settings() {
 }
 
 # ---------------------------------------------------------------------------
+# Fix relative paths in settings.json for global install
+# ---------------------------------------------------------------------------
+fix_paths() {
+    local settings_file="$1"
+    [[ -f "$settings_file" ]] || return
+
+    local fixed
+    if fixed=$(jq --arg home "$HOME" '
+        # Fix statusLine command path
+        (if .statusLine.command then
+            .statusLine.command = ($home + "/.claude/statusline.sh")
+        else . end) |
+
+        # Fix outputStyle path
+        (if .outputStyle then
+            .outputStyle = ($home + "/.claude/output-styles/oh-my-claudecode.md")
+        else . end) |
+
+        # Fix hook command paths: replace "bash .claude/hooks/" with absolute path
+        (if .hooks then
+            .hooks |= with_entries(
+                .value |= [.[] |
+                    .hooks |= [.[] |
+                        if (.command | test("bash \\.claude/hooks/")) then
+                            .command |= sub("bash \\.claude/hooks/"; "bash " + $home + "/.claude/hooks/")
+                        else . end
+                    ]
+                ]
+            )
+        else . end)
+    ' "$settings_file" 2>&1); then
+        printf '%s\n' "$fixed" > "$settings_file"
+        success "Fixed paths in settings.json for global install"
+    else
+        warn "Path fix failed: $fixed"
+    fi
+}
+
+# ---------------------------------------------------------------------------
 # Copy files from source to target, recording in manifest
 # ---------------------------------------------------------------------------
 copy_files() {
@@ -363,6 +402,7 @@ do_install() {
     # Merge settings.json
     info "Merging settings.json..."
     merge_settings "$SOURCE_CLAUDE_DIR/settings.json" "$TARGET_DIR/settings.json"
+    fix_paths "$TARGET_DIR/settings.json"
 
     # Summary
     local file_count
@@ -412,6 +452,7 @@ do_update() {
     # Re-merge settings
     info "Re-merging settings.json..."
     merge_settings "$SOURCE_CLAUDE_DIR/settings.json" "$TARGET_DIR/settings.json"
+    fix_paths "$TARGET_DIR/settings.json"
 
     # Summary
     local file_count
@@ -560,7 +601,8 @@ WARNING
     # Direct copy of settings.json (clean slate, no merge)
     if [[ -f "$SOURCE_CLAUDE_DIR/settings.json" ]]; then
         cp "$SOURCE_CLAUDE_DIR/settings.json" "$TARGET_DIR/settings.json"
-        success "Installed settings.json (clean copy)"
+        fix_paths "$TARGET_DIR/settings.json"
+        success "Installed settings.json (clean copy, paths fixed)"
     fi
 
     # Summary
