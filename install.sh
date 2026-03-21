@@ -297,6 +297,22 @@ copy_files() {
         success "Installed $skill_count skill(s)"
     fi
 
+    # --- Scripts ---
+    if [[ -d "$SOURCE_CLAUDE_DIR/scripts" ]]; then
+        mkdir -p "$TARGET_DIR/scripts"
+        local script_count=0
+        for f in "$SOURCE_CLAUDE_DIR/scripts/"*.sh; do
+            [[ -f "$f" ]] || continue
+            local name
+            name=$(basename "$f")
+            cp "$f" "$TARGET_DIR/scripts/$name"
+            chmod +x "$TARGET_DIR/scripts/$name"
+            manifest_entries+=("$TARGET_DIR/scripts/$name")
+            script_count=$((script_count + 1))
+        done
+        success "Installed $script_count script(s)"
+    fi
+
     # --- Output styles ---
     if [[ -d "$SOURCE_CLAUDE_DIR/output-styles" ]]; then
         mkdir -p "$TARGET_DIR/output-styles"
@@ -499,6 +515,7 @@ do_uninstall() {
         for dir in \
             "$TARGET_DIR/agents" \
             "$TARGET_DIR/hooks" \
+            "$TARGET_DIR/scripts" \
             "$TARGET_DIR/output-styles"; do
             if [[ -d "$dir" ]] && [[ -z "$(ls -A "$dir" 2>/dev/null)" ]]; then
                 rmdir "$dir" 2>/dev/null || true
