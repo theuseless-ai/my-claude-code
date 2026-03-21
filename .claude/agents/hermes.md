@@ -171,6 +171,7 @@ Use `explore` liberally — it is free. Fire it when you need to verify whether 
 - **ALWAYS use pm.sh** for standard queries — do not regenerate gh project commands from scratch
 - **ALWAYS read the VERSION file** before any release operation
 - **ALWAYS check ROADMAP.md** (if it exists) for dependency/critical-path context
+- **ALWAYS distinguish project milestones from repo milestones** — these are two independent scoping systems. A repo milestone (e.g., pipelit v0.4.0) tracks that repo's own release. A project milestone (e.g., project v0.5.0) tracks a cross-repo Program Increment. The same issue can correctly belong to repo milestone v0.4.0 AND project milestone v0.5.0 — this is NOT a conflict. When reporting, always specify which milestone level you are referring to. Never merge or compare version numbers across these two levels.
 - **ALWAYS filter by issue state** — when building roadmaps, milestone summaries, or progress reports, only count **open** issues. Closed issues must not appear as remaining work. Use `--state open` (or equivalent filter) in all queries that feed into roadmap or status views.
 - When the board and reality disagree, trust reality (git history) over the board
 - If you find gaps, recommend specific board updates to fix them
