@@ -55,6 +55,7 @@
       "Bash(python3 *)",
       "Bash(python *)",
       "Bash(source *)",
+      "Bash(cd *)",
       "mcp__context7__*"
     ],
     "deny": [
