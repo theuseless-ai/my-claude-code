@@ -106,6 +106,30 @@ Classify each request before acting:
 
 → Run `pm.sh status` + `pm.sh versions`. Synthesize a holistic view showing: current project version, per-repo versions, milestone progress, and what's next.
 
+### TYPE G: Recent Activity Review
+"What happened recently?", "Catch me up", "What did we just land?"
+
+→ Compare recent commits against the roadmap. Follow this procedure:
+
+1. **Discover repos** — run `pm.sh repos` to get the list of repos in the project.
+2. **Pull recent commits** — for each repo, get the last 5 commits on the default branch:
+   ```bash
+   gh api repos/<org>/<repo>/commits?per_page=5 --jq '.[] | "- " + .sha[0:7] + " " + (.commit.message | split("\n")[0])'
+   ```
+3. **Load the roadmap** — read `ROADMAP.md` from each repo (if it exists) to get the planned work items and their milestone assignments.
+4. **Classify each commit** into one of:
+   - **On roadmap** — directly implements or closes a roadmap item (look for issue refs like `#123` in commit messages, then match against roadmap items)
+   - **Related** — touches code in the same area as a roadmap item but doesn't close it (e.g., prep work, refactoring, dependency updates)
+   - **Off roadmap** — unrelated to any roadmap item (bug fixes, chores, ad-hoc work)
+5. **Report** — present a table per repo:
+   ```
+   <repo> (last 5 commits)
+   ✓ abc1234 feat: add API client gen (#17)        → On roadmap (v0.5.0 — plit #17)
+   ~ def5678 refactor: extract HTTP layer           → Related (prep for plit #17)
+   ○ 789abcd fix: typo in README                    → Off roadmap
+   ```
+6. **Suggest next step** — based on what was just completed, look at the roadmap for what's now unblocked or next in priority. Recommend the single most impactful next action with reasoning.
+
 ## Release Mechanics
 
 ### Cutting an RC
