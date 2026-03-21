@@ -52,6 +52,8 @@
       "Bash(go *)",
       "Bash(cargo *)",
       "Bash(make *)",
+      "Bash(python3 *)",
+      "Bash(python *)",
       "mcp__context7__*"
     ],
     "deny": [
