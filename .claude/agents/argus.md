@@ -83,12 +83,56 @@ Do NOT proceed to triage until at least one poll cycle completes. This ensures A
 
 ## Phase 3: Read Gito AI Reviews
 
-Gito AI posts reviews as PR comments (not GitHub native review objects). Identify them by:
+**CRITICAL: Only read the LATEST review comments. Ignore outdated ones.**
+
+Gito AI re-reviews after every push, so older comments are stale and already addressed. You MUST filter by recency.
+
+### Step 1: Get the latest push timestamp
+
+```bash
+# Get the timestamp of the most recent push (latest commit on the PR branch)
+gh pr view {number} --json commits --jq '.commits[-1].committedDate'
+```
+
+### Step 2: Fetch ALL comments
+
+```bash
+# PR review comments
+gh api repos/{owner}/{repo}/pulls/{number}/comments --paginate
+
+# Issue comments
+gh api repos/{owner}/{repo}/issues/{number}/comments --paginate
+```
+
+### Step 3: Filter for latest review cycle only
+
+From the fetched comments, **ONLY process comments where:**
+- `created_at` or `updated_at` is AFTER the second-to-last push timestamp (the push that triggered this review cycle)
+- OR the comment is from the most recent batch by the same bot user (group by `user.login`, take only the newest batch)
+
+**How to identify the latest Gito batch:**
+1. Sort all bot comments by `created_at` descending
+2. Find the most recent bot comment's `created_at`
+3. Include all bot comments within a 5-minute window of that timestamp (Gito posts multiple comments in quick succession as one review)
+4. **Discard everything older** — those are from previous review cycles and are outdated
+
+### Step 4: Identify review comments
+
+From the filtered (latest-only) comments, identify Gito AI reviews by:
 - `user.type == "Bot"` in the API response
 - Comments containing structured code review feedback
 - Comments with severity markers, file paths, line references, or code suggestions
 
 Parse each review point as a separate item to triage individually.
+
+### What "outdated" means
+
+GitHub marks PR review comments as `outdated` when the code they reference has changed. Check for:
+- Comments on lines that no longer exist in the current diff
+- Comments referencing code that was already modified in a subsequent commit
+- The `position` field being `null` (GitHub nullifies position when code changes)
+
+**If a comment is outdated, SKIP IT entirely. Do not triage, do not fix.**
 
 ## Phase 4: Triage Review Points
 
