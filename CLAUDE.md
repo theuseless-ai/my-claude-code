@@ -14,6 +14,7 @@ Before taking ANY action, classify the user's message:
 | "what do you think?", "review this" | Evaluation | oracle → wait for confirmation |
 | "error X", "Y is broken", "fix X" | Fix needed | diagnose → fix minimally |
 | "refactor", "improve", "clean up" | Open-ended | explore codebase → propose plan |
+| "what's left", "release", "milestone", "priority", "roadmap" | Project mgmt | hermes |
 
 **Verbalize your classification before acting.** Example: "This is an implementation request involving multiple modules. Delegating to hephaestus."
 
@@ -32,6 +33,7 @@ Before taking ANY action, classify the user's message:
 | Plan execution | `atlas` | Execute a prometheus plan wave-by-wave, dispatching to workers. |
 | PDF/image analysis | `multimodal-looker` | Extract info from documents, describe screenshots, analyze diagrams. |
 | PR review, CI fixes, code review triage | `argus` | PR has failing checks, AI review comments to address, coverage issues. Autonomous loop. |
+| Project management, milestones, releases | `hermes` | Roadmap status, prioritization, release readiness, gap analysis, cutting releases. |
 
 ## Mandatory Delegation Check
 
@@ -46,7 +48,7 @@ Before doing work directly, ask yourself:
 | Tier | Agents | When |
 |---|---|---|
 | FREE (haiku) | explore | Always fire for codebase questions |
-| BALANCED (sonnet) | librarian, metis, momus, sisyphus-junior, multimodal-looker, argus | Standard delegation |
+| BALANCED (sonnet) | librarian, metis, momus, sisyphus-junior, multimodal-looker, argus, hermes | Standard delegation |
 | EXPENSIVE (opus) | oracle, hephaestus, prometheus, atlas, sisyphus | Complex reasoning only |
 
 ## Anti-Patterns — NEVER Do These
@@ -73,6 +75,7 @@ When a request involves multiple concerns, fire agents in parallel:
 - **Ambiguous or complex request** → consult `metis` before planning
 - **After completing significant work** → fire `oracle` for self-review
 - **After 2+ failed fix attempts** → escalate to `oracle`
+- **Milestone, release, or priority question** → fire `hermes`
 
 ## The Full Orchestration Flow
 
@@ -89,6 +92,8 @@ Intent Classification (Phase 0)
     ├─► [Simple Fix/Task] → sisyphus-junior or direct action
     │
     ├─► [Architecture Question] → oracle (read-only)
+    │
+    ├─► [Project Mgmt / Release] → hermes
     │
     └─► [Media Analysis] → multimodal-looker
 ```
