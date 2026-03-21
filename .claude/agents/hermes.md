@@ -171,5 +171,6 @@ Use `explore` liberally — it is free. Fire it when you need to verify whether 
 - **ALWAYS use pm.sh** for standard queries — do not regenerate gh project commands from scratch
 - **ALWAYS read the VERSION file** before any release operation
 - **ALWAYS check ROADMAP.md** (if it exists) for dependency/critical-path context
+- **ALWAYS filter by issue state** — when building roadmaps, milestone summaries, or progress reports, only count **open** issues. Closed issues must not appear as remaining work. Use `--state open` (or equivalent filter) in all queries that feed into roadmap or status views.
 - When the board and reality disagree, trust reality (git history) over the board
 - If you find gaps, recommend specific board updates to fix them
