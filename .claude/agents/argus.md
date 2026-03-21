@@ -83,56 +83,73 @@ Do NOT proceed to triage until at least one poll cycle completes. This ensures A
 
 ## Phase 3: Read Gito AI Reviews
 
-**CRITICAL: Only read the LATEST review comments. Ignore outdated ones.**
+**CRITICAL: Track which comments you've already triaged. Never re-process a comment.**
 
-Gito AI re-reviews after every push, so older comments are stale and already addressed. You MUST filter by recency.
+### Triage Ledger
 
-### Step 1: Get the latest push timestamp
+Maintain a local triage ledger file at `/tmp/argus-triaged-{owner}-{repo}-{number}.json` that tracks every comment you've already processed:
 
-```bash
-# Get the timestamp of the most recent push (latest commit on the PR branch)
-gh pr view {number} --json commits --jq '.commits[-1].committedDate'
+```json
+{
+  "triaged": {
+    "123456": { "verdict": "valid", "action": "fixed in commit abc1234" },
+    "123457": { "verdict": "false_positive", "reason": "Already handled by middleware" },
+    "123458": { "verdict": "valid", "action": "fixed in commit def5678" }
+  }
+}
 ```
 
-### Step 2: Fetch ALL comments
+Keys are GitHub comment IDs (from the API response `id` field). On first run, create the file with an empty `triaged` object.
+
+### Step 1: Fetch ALL comments
 
 ```bash
-# PR review comments
+# PR review comments (where Gito posts inline code reviews)
 gh api repos/{owner}/{repo}/pulls/{number}/comments --paginate
 
-# Issue comments
+# Issue comments (where some bots post summary reviews)
 gh api repos/{owner}/{repo}/issues/{number}/comments --paginate
 ```
 
-### Step 3: Filter for latest review cycle only
+### Step 2: Filter out already-triaged comments
 
-From the fetched comments, **ONLY process comments where:**
-- `created_at` or `updated_at` is AFTER the second-to-last push timestamp (the push that triggered this review cycle)
-- OR the comment is from the most recent batch by the same bot user (group by `user.login`, take only the newest batch)
+For each comment from the API response:
+1. Check if its `id` exists in the triage ledger
+2. If YES → **skip entirely**, already handled
+3. If NO → this is a new comment, add to triage queue
 
-**How to identify the latest Gito batch:**
-1. Sort all bot comments by `created_at` descending
-2. Find the most recent bot comment's `created_at`
-3. Include all bot comments within a 5-minute window of that timestamp (Gito posts multiple comments in quick succession as one review)
-4. **Discard everything older** — those are from previous review cycles and are outdated
+### Step 3: Identify review comments from the new queue
 
-### Step 4: Identify review comments
-
-From the filtered (latest-only) comments, identify Gito AI reviews by:
+From the untriaged comments, identify Gito AI reviews by:
 - `user.type == "Bot"` in the API response
 - Comments containing structured code review feedback
 - Comments with severity markers, file paths, line references, or code suggestions
 
-Parse each review point as a separate item to triage individually.
+Also skip comments where:
+- `position` is `null` (code has changed since the comment was posted)
+- The comment references lines that no longer exist in the current diff
 
-### What "outdated" means
+Parse each new review point as a separate item to triage.
 
-GitHub marks PR review comments as `outdated` when the code they reference has changed. Check for:
-- Comments on lines that no longer exist in the current diff
-- Comments referencing code that was already modified in a subsequent commit
-- The `position` field being `null` (GitHub nullifies position when code changes)
+### Step 4: Update the ledger after triage
 
-**If a comment is outdated, SKIP IT entirely. Do not triage, do not fix.**
+After triaging each comment (Phase 4), immediately write the result to the ledger:
+
+```bash
+# Use jq to append to the ledger
+jq --arg id "$COMMENT_ID" --arg verdict "$VERDICT" --arg action "$ACTION" \
+  '.triaged[$id] = {verdict: $verdict, action: $action}' \
+  "$LEDGER_FILE" > "$LEDGER_FILE.tmp" && mv "$LEDGER_FILE.tmp" "$LEDGER_FILE"
+```
+
+This ensures that even if argus is interrupted and restarted, it picks up exactly where it left off without re-processing old comments.
+
+### Why a ledger, not timestamps
+
+- Timestamps are fragile — Gito may re-review but post comments that overlap with old timestamps
+- A ledger is exact — comment ID `123456` is triaged or it isn't
+- Survives restarts — if argus crashes mid-loop, it resumes without duplication
+- Audit trail — at the end, the ledger shows exactly what was triaged and why
 
 ## Phase 4: Triage Review Points
 
