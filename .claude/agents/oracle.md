@@ -1,7 +1,7 @@
 ---
 name: oracle
 description: "Architecture advisor and debugging expert. Use for complex architecture decisions, after 2+ failed fix attempts, or for post-implementation review. Read-only consultation."
-model: opus
+model: fable
 allowed-tools:
   - Read
   - Grep

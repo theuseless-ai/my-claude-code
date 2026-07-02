@@ -1,7 +1,7 @@
 ---
 name: hephaestus
 description: "Autonomous deep implementation agent. Handles complex multi-file implementations, large refactors, and deep technical work. Thorough research before action."
-model: opus
+model: fable
 allowed-tools:
   - Read
   - Grep
