@@ -17,8 +17,29 @@ curl -fsSL https://raw.githubusercontent.com/theuseless-ai/my-claude-code/main/i
 # Uninstall (preserves your settings.json)
 curl -fsSL https://raw.githubusercontent.com/theuseless-ai/my-claude-code/main/install.sh | bash -s -- --uninstall
 
-# Clean install (wipes ~/.claude/ entirely, backs up first)
+# Clean install (wipes the target dir entirely, backs up first)
 curl -fsSL https://raw.githubusercontent.com/theuseless-ai/my-claude-code/main/install.sh | bash -s -- --clean
+```
+
+### Custom install location
+
+By default everything installs to `~/.claude`. To install into a different config
+directory — handy when you run multiple Claude Code profiles behind shell aliases —
+point the installer at it. Target precedence is `--target <dir>` > `$CLAUDE_CONFIG_DIR` > `~/.claude`:
+
+```bash
+# Explicit target (clone the repo first, or run your local ~/.oh-my-claudecode/install.sh)
+./install.sh --update --target ~/.claude_work
+
+# Or via the same env var Claude Code itself honours — no flag needed
+CLAUDE_CONFIG_DIR=~/.claude_work ./install.sh --update
+```
+
+Each non-default target gets its own manifest, so installs to different directories
+never clobber each other's uninstall records. This pairs naturally with an alias like:
+
+```bash
+alias claude_work="CLAUDE_CONFIG_DIR=~/.claude_work claude --agent sisyphus"
 ```
 
 ## What This Is
