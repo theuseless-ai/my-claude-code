@@ -25,8 +25,15 @@ RESET='\033[0m'
 # Paths
 # ---------------------------------------------------------------------------
 REPO_URL="https://github.com/theuseless-ai/my-claude-code.git"
-CLONE_DIR="$HOME/.oh-my-claudecode"
-TARGET_DIR="$HOME/.claude"
+CLONE_DIR="${OMC_CLONE_DIR:-$HOME/.oh-my-claudecode}"
+# Where agents/hooks/skills/etc. get installed. Precedence (low -> high):
+#   ~/.claude  <  $CLAUDE_CONFIG_DIR  <  --target <dir>
+# The --target flag is applied later in main(); CLAUDE_CONFIG_DIR is the same
+# env var Claude Code itself honours, so alias'd configs "just work".
+DEFAULT_TARGET_DIR="$HOME/.claude"
+TARGET_DIR="${CLAUDE_CONFIG_DIR:-$DEFAULT_TARGET_DIR}"
+# MANIFEST_FILE is recomputed per-target in main() when the target is non-default,
+# so installs to different dirs don't clobber each other's manifest.
 MANIFEST_FILE="$CLONE_DIR/.manifest"
 SOURCE_CLAUDE_DIR="$CLONE_DIR/.claude"
 
@@ -543,7 +550,7 @@ do_uninstall() {
     printf "\n"
     printf "  ${CYAN}Notes:${RESET}\n"
     printf "    - ${YELLOW}settings.json${RESET} was left intact (too risky to un-merge).\n"
-    printf "      Edit ~/.claude/settings.json manually if needed.\n"
+    printf "      Edit $TARGET_DIR/settings.json manually if needed.\n"
     printf "\n"
 }
 
@@ -556,17 +563,17 @@ do_clean() {
 
     # Big destructive warning
     printf "${RED}${BOLD}"
-    cat <<'WARNING'
+    cat <<WARNING
 
   !!!  DESTRUCTIVE OPERATION  !!!
 
-  This will DELETE your entire ~/.claude/ directory including:
+  This will DELETE your entire ${TARGET_DIR}/ directory including:
     - All settings (settings.json, settings.local.json)
     - All custom agents, hooks, skills
     - All output styles and status lines
-    - Everything in ~/.claude/
+    - Everything in ${TARGET_DIR}/
 
-  A backup will be saved to ~/.claude.bak.{timestamp}/
+  A backup will be saved to ${TARGET_DIR}.bak.{timestamp}/
 
 WARNING
     printf "${RESET}"
@@ -585,7 +592,7 @@ WARNING
 
     # Backup existing ~/.claude/
     if [[ -d "$TARGET_DIR" ]]; then
-        backup_dir="$HOME/.claude.bak.${ts}"
+        backup_dir="${TARGET_DIR}.bak.${ts}"
         info "Backing up $TARGET_DIR to $backup_dir..."
         cp -r "$TARGET_DIR" "$backup_dir"
         success "Backup saved to $backup_dir"
@@ -639,26 +646,64 @@ WARNING
 # Main
 # ===========================================================================
 main() {
-    local mode="${1:-}"
+    local mode=""
+    local target_override=""
+
+    # Parse args: a single mode flag plus an optional --target <dir> (any order).
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --update|--uninstall|--clean|--help|-h)
+                mode="$1"; shift ;;
+            --target)
+                target_override="${2:-}"
+                if [[ -z "$target_override" ]]; then
+                    error "--target requires a directory argument"
+                    exit 1
+                fi
+                shift 2 ;;
+            --target=*)
+                target_override="${1#*=}"
+                if [[ -z "$target_override" ]]; then
+                    error "--target requires a directory argument"
+                    exit 1
+                fi
+                shift ;;
+            "")
+                shift ;;
+            *)
+                error "Unknown option: $1"
+                printf "  Use --help for usage.\n"
+                exit 1 ;;
+        esac
+    done
+
+    # Apply the target override (expanding a leading ~), then derive a per-target
+    # manifest name for non-default targets so parallel installs stay isolated.
+    if [[ -n "$target_override" ]]; then
+        TARGET_DIR="${target_override/#\~/$HOME}"
+    fi
+    if [[ "$TARGET_DIR" != "$DEFAULT_TARGET_DIR" ]]; then
+        local slug
+        slug="$(printf '%s' "$TARGET_DIR" | sed 's#[^A-Za-z0-9]#_#g')"
+        MANIFEST_FILE="$CLONE_DIR/.manifest.${slug}"
+    fi
 
     case "$mode" in
         --update)    do_update ;;
         --uninstall) do_uninstall ;;
         --clean)     do_clean ;;
         --help|-h)
-            printf "Usage: install.sh [--update|--uninstall|--clean|--help]\n\n"
-            printf "  (no flag)     Install oh-my-claudecode (smart merge with existing config)\n"
-            printf "  --update      Pull latest, re-copy files, re-merge settings\n"
-            printf "  --uninstall   Remove only oh-my-claudecode files (preserves settings.json)\n"
-            printf "  --clean       NUKE entire ~/.claude/, backup, then fresh install\n"
-            printf "  --help        Show this help\n"
+            printf "Usage: install.sh [--update|--uninstall|--clean|--help] [--target <dir>]\n\n"
+            printf "  (no flag)      Install oh-my-claudecode (smart merge with existing config)\n"
+            printf "  --update       Pull latest, re-copy files, re-merge settings\n"
+            printf "  --uninstall    Remove only oh-my-claudecode files (preserves settings.json)\n"
+            printf "  --clean        NUKE entire target dir, backup, then fresh install\n"
+            printf "  --target <dir> Install to <dir> instead of the default\n"
+            printf "  --help         Show this help\n\n"
+            printf "  Target precedence: --target > \$CLAUDE_CONFIG_DIR > ~/.claude\n"
+            printf "  Current target:    %s\n" "$TARGET_DIR"
             ;;
         "")          do_install ;;
-        *)
-            error "Unknown option: $mode"
-            printf "  Use --help for usage.\n"
-            exit 1
-            ;;
     esac
 }
 
