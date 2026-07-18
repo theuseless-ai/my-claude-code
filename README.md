@@ -51,12 +51,12 @@ A set of Claude Code native configurations (agents, skills, hooks, MCP servers) 
 | Agent | Role | Model | Mode |
 |---|---|---|---|
 | **Sisyphus** | Main orchestrator — classifies intent, delegates to specialists | opus | Orchestrator |
-| **Hephaestus** | Autonomous deep implementation — complex multi-file work | opus | Worker |
-| **Oracle** | Architecture advisor, debugging expert | opus | Read-only |
+| **Hephaestus** | Autonomous deep implementation — complex multi-file work | fable | Worker |
+| **Oracle** | Architecture advisor, debugging expert | fable | Read-only |
 | **Librarian** | Documentation & library research via Context7 | sonnet | Read-only |
 | **Explore** | Fast codebase search specialist | haiku | Read-only |
 | **Atlas** | Plan executor — dispatches tasks wave-by-wave | opus | Orchestrator |
-| **Prometheus** | Strategic planner — creates dependency-aware work plans | opus | Planner |
+| **Prometheus** | Strategic planner — creates dependency-aware work plans | fable | Planner |
 | **Metis** | Pre-planning consultant — classifies intent, finds ambiguities | sonnet | Analyst |
 | **Momus** | Plan reviewer — verifies executability, catches blockers | sonnet | Reviewer |
 | **Multimodal Looker** | PDF/image/diagram analysis | sonnet | Reader |
