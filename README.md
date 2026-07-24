@@ -62,6 +62,7 @@ A set of Claude Code native configurations (agents, skills, hooks, MCP servers) 
 | **Multimodal Looker** | PDF/image/diagram analysis | sonnet | Reader |
 | **Sisyphus Junior** | Focused implementation worker for scoped tasks | sonnet | Worker |
 | **Argus** | Autonomous PR review fixer — triages AI reviews, fixes CI, loops until clean | sonnet | Worker |
+| **Hermes** | Project manager — milestones, priorities, release readiness, cutting releases | sonnet | Manager |
 
 ## Architecture
 

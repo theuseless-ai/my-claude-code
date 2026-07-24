@@ -49,7 +49,8 @@ Before doing work directly, ask yourself:
 |---|---|---|
 | FREE (haiku) | explore | Always fire for codebase questions |
 | BALANCED (sonnet) | librarian, metis, momus, sisyphus-junior, multimodal-looker, argus, hermes | Standard delegation |
-| EXPENSIVE (opus) | oracle, hephaestus, prometheus, atlas, sisyphus | Complex reasoning only |
+| EXPENSIVE (opus) | atlas, sisyphus | Orchestration and complex reasoning |
+| PREMIUM (fable) | oracle, hephaestus, prometheus | Deepest reasoning only — ~2× opus cost. Use sparingly. |
 
 ## Anti-Patterns — NEVER Do These
 
