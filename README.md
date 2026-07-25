@@ -166,7 +166,19 @@ This triggers: metis → prometheus → momus → atlas
 ├── drafts/          # Draft plans
 └── notepads/        # Shared context between tasks
 CLAUDE.md            # Orchestration protocol
+tests/               # Installer test suite
 ```
+
+## Development
+
+Tests are plain bash, no framework. They run in a temp sandbox and never touch
+your real `~/.claude`:
+
+```bash
+./tests/test-install-prune.sh
+```
+
+See [tests/README.md](tests/README.md) for conventions.
 
 ## Credits
 

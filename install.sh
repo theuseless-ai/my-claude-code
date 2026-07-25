@@ -960,6 +960,9 @@ main() {
         slug="$(printf '%s' "$TARGET_DIR" | sed 's#[^A-Za-z0-9]#_#g')"
         MANIFEST_FILE="$CLONE_DIR/.manifest.${slug}"
     fi
+    # Keep the ledger beside whichever manifest we settled on, so parallel
+    # installs to different targets stay isolated from each other.
+    OWNED_FILE="${MANIFEST_FILE}.owned"
 
     # Reject flag combinations that cannot mean anything
     if [[ $PRUNE -eq 1 && ( "$mode" == "--uninstall" || "$mode" == "--clean" ) ]]; then
