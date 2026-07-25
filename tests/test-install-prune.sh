@@ -35,11 +35,20 @@ sbgit() { local d="$1"; shift; git -C "$d" -c user.email=test@example.invalid -c
 # ---------------------------------------------------------------------------
 # Fixture
 # ---------------------------------------------------------------------------
-# Stand up a local "upstream" carrying the working-tree install.sh, then clone
-# from it so the installer's `git pull --ff-only` works offline.
-git clone -q "$REPO_ROOT" "$UPSTREAM"
-cp "$REPO_ROOT/install.sh" "$UPSTREAM/install.sh"
-sbgit "$UPSTREAM" commit -qam "test fixture: install.sh under test" || true
+# Stand up a local "upstream" from the WORKING TREE with a fresh history, then
+# clone from it so the installer's `git pull --ff-only` works offline.
+#
+# Deliberately NOT `git clone "$REPO_ROOT"`: on CI the checkout is detached at
+# a PR merge commit that belongs to no branch, so cloning it yields a branchless
+# repo and every `git pull --ff-only` in the suite fails.
+mkdir -p "$UPSTREAM"
+cp -R "$REPO_ROOT/.claude" "$UPSTREAM/"
+for f in install.sh CLAUDE.md .mcp.json; do
+    [[ -e "$REPO_ROOT/$f" ]] && cp "$REPO_ROOT/$f" "$UPSTREAM/$f"
+done
+git init -q -b main "$UPSTREAM" 2>/dev/null || git init -q "$UPSTREAM"
+sbgit "$UPSTREAM" add -A
+sbgit "$UPSTREAM" commit -qm "test fixture: working tree under test"
 git clone -q "$UPSTREAM" "$CLONE"
 rm -f "$CLONE"/.manifest*
 mkdir -p "$TGT"
