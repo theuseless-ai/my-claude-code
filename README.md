@@ -14,12 +14,43 @@ That's it. Agents, hooks, skills, status line, and Context7 MCP — all installe
 # Update to latest
 curl -fsSL https://raw.githubusercontent.com/theuseless-ai/my-claude-code/main/install.sh | bash -s -- --update
 
+# Remove files this repo no longer ships (see "Pruning" below)
+curl -fsSL https://raw.githubusercontent.com/theuseless-ai/my-claude-code/main/install.sh | bash -s -- --prune
+
 # Uninstall (preserves your settings.json)
 curl -fsSL https://raw.githubusercontent.com/theuseless-ai/my-claude-code/main/install.sh | bash -s -- --uninstall
 
 # Clean install (wipes the target dir entirely, backs up first)
 curl -fsSL https://raw.githubusercontent.com/theuseless-ai/my-claude-code/main/install.sh | bash -s -- --clean
 ```
+
+### Pruning
+
+`--update` only ever adds and overwrites files. When an agent or skill is deleted
+from this repo, the copy already installed in `~/.claude` stays there — Claude Code
+keeps loading a stale agent long after it was removed upstream. `--prune` cleans
+those up:
+
+```bash
+./install.sh --prune --dry-run   # list what would go, remove nothing
+./install.sh --prune             # remove them (asks first)
+./install.sh --update --prune    # pull and prune in one pass
+```
+
+A plain `--update` never deletes anything; it just tells you how many orphans it
+found so you can decide.
+
+Prune is deliberately conservative:
+
+- Only files the installer itself put there are candidates. It tracks these in a
+  `.manifest.owned` ledger next to the manifest, so your own agents and skills in
+  `~/.claude` are never touched.
+- `.mcp.json`, `settings.json`, and `settings.local.json` are never pruned — they
+  are merged with your own config, so deleting them would take your data with them.
+- Everything removed is copied to `~/.oh-my-claudecode/.pruned.<timestamp>/` first.
+- `--dry-run` changes nothing at all, so the preview and the real run agree.
+
+`--yes` skips the confirmation prompt (needed for non-interactive use).
 
 ### Custom install location
 
