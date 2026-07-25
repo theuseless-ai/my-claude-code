@@ -1,0 +1,47 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: installer test suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The suite clones this checkout to build its fixture, so it needs
+          # real history rather than a shallow one.
+          fetch-depth: 0
+
+      - name: Check prerequisites
+        run: |
+          missing=0
+          for cmd in git jq script; do
+            if command -v "$cmd" > /dev/null; then
+              echo "found $cmd"
+            else
+              echo "::error::required command '$cmd' is not available"
+              missing=1
+            fi
+          done
+          exit $missing
+
+      - name: Syntax check
+        run: |
+          for f in install.sh tests/test-*.sh; do
+            bash -n "$f" && echo "ok  $f"
+          done
+
+      - name: Run tests
+        run: |
+          rc=0
+          for t in tests/test-*.sh; do
+            echo "::group::$t"
+            bash "$t" || rc=1
+            echo "::endgroup::"
+          done
+          exit $rc
