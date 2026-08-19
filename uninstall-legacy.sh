@@ -18,7 +18,7 @@
 #   ./uninstall-legacy.sh --target DIR # a non-default config dir
 #
 # Then install the plugin:
-#   /plugin marketplace add theuseless-ai/oh-my-claudecode
+#   /plugin marketplace add theuseless-ai/my-claude-code
 #   /plugin install oh-my-claudecode@oh-my-claudecode
 
 set -euo pipefail
@@ -67,7 +67,7 @@ info "Config directory: $TARGET_DIR"
 if [[ ! -f "$MANIFEST_FILE" && ! -f "$OWNED_FILE" ]]; then
     success "No legacy install found — nothing to remove."
     printf "\n  Install the plugin with:\n"
-    printf "    ${CYAN}/plugin marketplace add theuseless-ai/oh-my-claudecode${RESET}\n"
+    printf "    ${CYAN}/plugin marketplace add theuseless-ai/my-claude-code${RESET}\n"
     printf "    ${CYAN}/plugin install oh-my-claudecode@oh-my-claudecode${RESET}\n\n"
     exit 0
 fi
@@ -137,5 +137,5 @@ printf "    - hooks pointing at %s/hooks/\n" "$TARGET_DIR"
 printf "    - \"statusLine\" pointing at %s/statusline.sh\n" "$TARGET_DIR"
 printf "    - \"outputStyle\": \"oh-my-claudecode\" (keep this if you still want the style)\n"
 printf "\n  Then install the plugin:\n"
-printf "    ${CYAN}/plugin marketplace add theuseless-ai/oh-my-claudecode${RESET}\n"
+printf "    ${CYAN}/plugin marketplace add theuseless-ai/my-claude-code${RESET}\n"
 printf "    ${CYAN}/plugin install oh-my-claudecode@oh-my-claudecode${RESET}\n\n"

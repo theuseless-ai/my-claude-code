@@ -6,15 +6,63 @@ intent-classification gate, plus a plan → review → execute pipeline. Inspire
 
 ## Install
 
+Two routes to the same result. Use the first if you are sitting in a Claude Code
+session; use the second if you are scripting it, or if you are an agent doing this
+on someone's behalf.
+
+### In a Claude Code session
+
 ```
-/plugin marketplace add theuseless-ai/oh-my-claudecode
+/plugin marketplace add theuseless-ai/my-claude-code
 /plugin install oh-my-claudecode@oh-my-claudecode
 ```
 
-Agents, skills and hooks load on the next session. Update with `/plugin update`.
+Then clone the repo and run `./configure.sh` (see [Configure](#configure) below).
 
-Then run the configure script once. Three pieces of config **cannot** travel in a
-plugin, verified against Claude Code 2.1.235:
+### From the shell — scripted, or for an agent
+
+Every step is non-interactive. Copy the block as-is:
+
+```bash
+# 1. Register the marketplace and install the plugin
+claude plugin marketplace add theuseless-ai/my-claude-code
+claude plugin install oh-my-claudecode@oh-my-claudecode --yes
+
+# 2. Apply the config the plugin cannot carry (see Configure below)
+git clone https://github.com/theuseless-ai/my-claude-code
+cd my-claude-code
+./configure.sh --yes
+
+# 3. Confirm
+claude plugin list
+```
+
+`claude plugin list` should show `oh-my-claudecode@oh-my-claudecode` with
+`Status: ✔ enabled`. `claude plugin details oh-my-claudecode` prints the component
+inventory — expect 13 agents, 7 skills and 2 hook events.
+
+Agents installing this for a user: run `./configure.sh --dry-run` first and show the
+output. It reports every settings change before making it, and it writes to the
+user's `settings.json`, so it deserves a look rather than a blind `--yes`.
+
+To target a config directory other than `~/.claude`, set `CLAUDE_CONFIG_DIR` — both
+`claude` and `configure.sh` honour it — or pass `./configure.sh --target DIR`.
+
+### Trying it without installing
+
+```bash
+claude --plugin-dir /path/to/my-claude-code          # load the working tree
+./tests/sandbox.sh --configure --agent sisyphus      # ...in a disposable config dir
+```
+
+`tests/sandbox.sh` points `CLAUDE_CONFIG_DIR` at a temp directory, so nothing in
+your real `~/.claude` is read or written. That isolation matters if you have a 1.x
+install still present — see below.
+
+## Configure
+
+Three pieces of config **cannot** travel inside a plugin, verified against Claude
+Code 2.1.235:
 
 | | Why a plugin can't ship it |
 |---|---|
@@ -22,11 +70,13 @@ plugin, verified against Claude Code 2.1.235:
 | The output style | A plugin's `output-styles/` never registers, with or without `force-for-plugin` |
 | The status line | `statusLine` is not among the keys a plugin's `settings.json` honours |
 
+`./configure.sh` fills exactly those three:
+
 ```bash
-git clone https://github.com/theuseless-ai/oh-my-claudecode
-cd oh-my-claudecode
-./configure.sh --dry-run   # show exactly what would change
-./configure.sh             # apply (asks first)
+./configure.sh --dry-run        # show every change, write nothing
+./configure.sh                  # apply (asks first)
+./configure.sh --yes            # apply without prompting
+./configure.sh --revert         # undo exactly what it added
 ```
 
 It writes the recommended permissions into your `settings.json`, and copies the
@@ -35,21 +85,14 @@ agents, skills or hooks — the plugin owns those, and a second copy in `~/.clau
 would shadow it. That is exactly what the pre-2.0 installer got wrong.
 
 Your existing settings are preserved: permissions are unioned rather than replaced,
-the file is backed up first, and a second run changes nothing. `./configure.sh
---revert` removes exactly what it added and leaves your own rules alone. A `statusLine` you
-already point somewhere else is never taken over — the script warns and skips.
-Pass `--no-style` or `--no-statusline` to opt out of either.
-
-To try the working tree without installing:
-
-```bash
-claude --plugin-dir /path/to/oh-my-claudecode
-```
+the file is backed up first, and a second run changes nothing. A `statusLine` you
+already point somewhere else is never taken over — the script warns and skips. Pass
+`--no-style` or `--no-statusline` to opt out of either.
 
 ### Upgrading from 1.x
 
-1.x installed itself into `~/.claude` with `curl | bash`. Those files still load
-and will shadow the plugin, so clear them out first:
+1.x installed itself into `~/.claude` with `curl | bash`. Those files still load and
+will shadow the plugin, so clear them out first:
 
 ```bash
 ./uninstall-legacy.sh --dry-run   # see what would go
@@ -57,7 +100,17 @@ and will shadow the plugin, so clear them out first:
 ```
 
 It only removes files the old installer recorded as its own, and never touches
-`settings.json`.
+`settings.json` — it prints the leftover entries there for you to clean up by hand.
+
+### Updating
+
+```
+/plugin update
+```
+
+or `claude plugin update oh-my-claudecode` from the shell. Re-run `./configure.sh`
+after a `git pull` if the permissions, style or status line have changed; it is a
+no-op when they haven't.
 
 ## Turning the orchestration on
 
