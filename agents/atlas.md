@@ -2,6 +2,7 @@
 name: atlas
 description: "Master execution orchestrator. Executes work plans by dispatching tasks wave-by-wave to worker agents. Never writes code directly — coordinates and verifies."
 model: opus
+color: red
 tools:
   - Read
   - Grep

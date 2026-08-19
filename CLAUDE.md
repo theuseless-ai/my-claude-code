@@ -45,6 +45,19 @@ scripts/pm.sh                    # project-board CLI used by the gh-* skills
   this on Claude Code upgrades — if it starts working, drop the manual step from
   the README.
 
+## Agent capability fields
+
+- **Read-only consultants carry `permissionMode: plan`**, not just a `tools:` list
+  without Write. Verified: reports still return normally, writes are refused, and
+  read-only Bash search still works. `prometheus` is the exception — it writes plans.
+- **`skills:` preloads into the subagent's context** and is verified working, but a
+  skill with `disable-model-invocation: true` cannot be preloaded. The test suite
+  enforces both.
+- **Autonomous loops get `maxTurns`.** `argus` loops until a PR is clean; without a
+  bound that is unbounded spend.
+- `effort` is set only where it earns it: `low` for explore, `high` for the deep
+  reasoners. Everything else inherits the session.
+
 ## Verify before committing
 
 ```bash
@@ -57,6 +70,15 @@ Load the working tree in a real session without installing it:
 ```bash
 claude --plugin-dir . 
 ```
+
+## Drift checking
+
+`claude plugin validate . --strict` plus `tests/test-plugin-structure.sh` are the
+drift guard. The `cc-native` plugin was evaluated for this and **rejected**: its
+`refresh-refs.py` runs on every SessionStart and, in its own words, is "POC scope
+only — no TTL, no version compare, no atomic writes, no opt-out flag", silently
+re-downloading nine files from GitHub each start. At 1 star and same-day commits
+that is not something to wire into a global config. Re-evaluate if it matures.
 
 ## Legacy
 

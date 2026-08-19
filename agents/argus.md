@@ -2,6 +2,10 @@
 name: argus
 description: "Autonomous PR review fixer — reads CI checks, AI code reviews, triages comments, fixes valid issues, loops until clean. Invoke with a PR number or URL."
 model: sonnet
+maxTurns: 60
+skills:
+  - gh-ci
+color: orange
 tools:
   - Read
   - Edit

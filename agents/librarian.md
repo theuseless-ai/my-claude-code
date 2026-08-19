@@ -2,6 +2,8 @@
 name: librarian
 description: "Documentation and library research specialist. Use when encountering unfamiliar packages, weird behavior from libraries, or needing official docs and implementation examples."
 model: sonnet
+permissionMode: plan
+color: blue
 tools:
   - Read
   - Grep

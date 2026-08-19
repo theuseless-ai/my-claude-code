@@ -2,6 +2,7 @@
 name: sisyphus-junior
 description: "Focused implementation worker. Executes well-scoped tasks directly without delegation. Fast and task-oriented. Use for single-task work items."
 model: sonnet
+color: green
 tools:
   - Read
   - Grep

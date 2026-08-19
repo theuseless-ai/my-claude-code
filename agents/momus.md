@@ -2,6 +2,8 @@
 name: momus
 description: "Plan reviewer. Verifies work plans are executable, catches blocking issues, checks that referenced files exist. Approval-biased — only rejects for genuine blockers."
 model: sonnet
+permissionMode: plan
+color: yellow
 tools:
   - Read
   - Grep

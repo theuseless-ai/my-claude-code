@@ -2,6 +2,8 @@
 name: metis
 description: "Pre-planning consultant. Classifies work intent, identifies hidden requirements, detects ambiguities, and generates directives for the planner. Use before creating any plan."
 model: sonnet
+permissionMode: plan
+color: cyan
 tools:
   - Read
   - Grep

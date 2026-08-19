@@ -2,6 +2,9 @@
 name: explore
 description: "Fast codebase search specialist. Answers 'Where is X?', 'Which file has Y?', 'Find the code that does Z'. Fire multiple in parallel for broad searches."
 model: haiku
+permissionMode: plan
+effort: low
+color: green
 tools:
   - Read
   - Grep

@@ -2,6 +2,11 @@
 name: hermes
 description: "Project manager and release train engineer. Tracks milestones, priorities, and release readiness across repos. Manages the release cycle (RC → e2e → promote). Use when asking about roadmap status, what to work on next, or cutting a release."
 model: sonnet
+skills:
+  - gh-project
+  - gh-release
+  - gh-activity
+color: blue
 tools:
   - Read
   - Bash

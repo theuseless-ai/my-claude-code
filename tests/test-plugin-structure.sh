@@ -18,6 +18,20 @@ check() {
         printf '  \033[31mFAIL\033[0m %s\n' "$1"; FAIL=$((FAIL+1))
     fi
 }
+# Every skill named in an agent's `skills:` list must exist and must be
+# model-invocable — disable-model-invocation blocks subagent preloading.
+preloaded_skills_resolve() {
+    local f sk
+    for f in agents/*.md; do
+        while read -r sk; do
+            [[ -n "$sk" ]] || continue
+            [[ -f "skills/$sk/SKILL.md" ]] || return 1
+            grep -q '^disable-model-invocation: true' "skills/$sk/SKILL.md" && return 1
+        done < <(awk '/^skills:/{p=1;next} /^[a-zA-Z]/{p=0} p&&/^  - /{print $2}' "$f")
+    done
+    return 0
+}
+
 hr() { printf '\n\033[1m== %s\033[0m\n' "$1"; }
 
 command -v jq > /dev/null || { echo "jq required"; exit 1; }
@@ -49,6 +63,25 @@ for f in $AGENTS; do
     check "$n: declares description"           "grep -q '^description: ' '$f'"
     check "$n: declares model"                 "grep -q '^model: ' '$f'"
 done
+
+hr "agent capability fields"
+# Read-only consultants declare no Write/Edit AND run in plan mode, so the
+# restriction is enforced by the harness rather than only by prose.
+for n in oracle momus metis explore librarian multimodal-looker; do
+    f="agents/$n.md"
+    check "$n: permissionMode plan"        "grep -q '^permissionMode: plan$' '$f'"
+    check "$n: no Write in tools"          "! awk '/^---$/{k++;next} k==1' '$f' | grep -qE '^  - (Write|Edit)$'"
+done
+# prometheus writes plans, so it must NOT be in plan mode.
+check "prometheus not in plan mode"        "! grep -q '^permissionMode: plan$' agents/prometheus.md"
+check "prometheus can write"               "awk '/^---$/{k++;next} k==1' agents/prometheus.md | grep -q '^  - Write$'"
+
+# argus runs an autonomous loop; it must stay bounded.
+check "argus declares maxTurns"            "grep -qE '^maxTurns: [0-9]+$' agents/argus.md"
+
+# Preloaded skills must exist and must be model-invocable — a skill marked
+# disable-model-invocation cannot be preloaded into a subagent.
+check "every preloaded skill resolves" "preloaded_skills_resolve"
 
 hr "skill frontmatter"
 for f in $(find skills -name 'SKILL.md' | sort); do

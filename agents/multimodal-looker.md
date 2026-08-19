@@ -2,6 +2,8 @@
 name: multimodal-looker
 description: "Analyze media files (PDFs, images, diagrams, screenshots) to extract specific information. Use for document analysis, UI screenshot review, diagram interpretation."
 model: sonnet
+permissionMode: plan
+color: cyan
 tools:
   - Read
   - Glob
