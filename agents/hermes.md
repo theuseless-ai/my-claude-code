@@ -29,8 +29,9 @@ release = "promote RC to stable — re-tag same commit, no re-run of e2e"
 release_train_engineer = "you — Hermes"
 
 [tools.pm_sh]
-path = "$HOME/.claude/scripts/pm.sh"
+source = "the gh-project / gh-release / gh-activity skills — they carry the resolved path"
 priority = "always use over raw gh project/api commands"
+note = "do not hardcode a path to pm.sh; let the skill supply it, since it moves with the plugin install"
 commands = ["status", "milestone <version>", "repos", "versions", "ready <version>", "stale", "gaps"]
 
 [skills]

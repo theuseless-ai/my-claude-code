@@ -8,19 +8,15 @@ on:
 
 jobs:
   test:
-    name: installer test suite
+    name: plugin structure
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-        with:
-          # The suite clones this checkout to build its fixture, so it needs
-          # real history rather than a shallow one.
-          fetch-depth: 0
 
       - name: Check prerequisites
         run: |
           missing=0
-          for cmd in git jq script; do
+          for cmd in git jq; do
             if command -v "$cmd" > /dev/null; then
               echo "found $cmd"
             else
@@ -32,8 +28,14 @@ jobs:
 
       - name: Syntax check
         run: |
-          for f in install.sh tests/test-*.sh; do
+          for f in uninstall-legacy.sh hooks/*.sh scripts/*.sh tests/test-*.sh; do
             bash -n "$f" && echo "ok  $f"
+          done
+
+      - name: Manifests are valid JSON
+        run: |
+          for f in .claude-plugin/plugin.json .claude-plugin/marketplace.json hooks/hooks.json; do
+            jq empty "$f" && echo "ok  $f"
           done
 
       - name: Run tests

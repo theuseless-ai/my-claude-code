@@ -1,13 +1,6 @@
 ---
 name: frontend-ui-ux
 description: "Design-first UI development. Accessibility-first component architecture, responsive design patterns, and design system integration."
-allowed-tools:
-  - Read
-  - Grep
-  - Glob
-  - Bash
-  - Write
-  - Edit
 ---
 
 # Frontend UI/UX — Design-First Development

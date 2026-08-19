@@ -1,12 +1,8 @@
 ---
 name: gh-activity
-description: "Review recent commit history across GitHub repos, correlate commits against roadmaps, classify work as on-roadmap/related/off-roadmap.\nTRIGGER when: agent needs recent commit history across repos, needs to correlate commits against a roadmap, needs to classify recent work, or user asks 'what happened recently' / 'catch me up'.\nDO NOT TRIGGER when: agent is only checking CI status (use gh-ci), only reading project board data (use gh-project), or looking at a single commit diff."
-allowed-tools:
-  - Bash
-  - Read
-  - Grep
-  - Glob
-  - Agent
+description: "Review recent commit history across GitHub repos, correlate commits against roadmaps, classify work as on-roadmap/related/off-roadmap."
+when_to_use: "TRIGGER when: agent needs recent commit history across repos, needs to correlate commits against a roadmap, needs to classify recent work, or user asks 'what happened recently' / 'catch me up'.\nDO NOT TRIGGER when: agent is only checking CI status (use gh-ci), only reading project board data (use gh-project), or looking at a single commit diff."
+allowed-tools: Bash(gh *) Bash(git log:*) Bash(git show:*) Bash(jq *) Bash(${CLAUDE_PLUGIN_ROOT}/scripts/pm.sh *)
 ---
 
 # gh-activity — Recent Activity Review & Commit Classification
@@ -20,7 +16,7 @@ Review recent work across repos in a GitHub organization, classify each commit a
 ### Step 1: Discover repos in the project
 
 ```bash
-$HOME/.claude/scripts/pm.sh repos
+${CLAUDE_PLUGIN_ROOT}/scripts/pm.sh repos
 ```
 
 This returns all repos that have items on the project board.
@@ -45,7 +41,7 @@ gh api repos/<org>/<repo>/contents/ROADMAP.md --jq '.content' 2>/dev/null | base
 Also load the project board state for cross-referencing:
 
 ```bash
-$HOME/.claude/scripts/pm.sh status
+${CLAUDE_PLUGIN_ROOT}/scripts/pm.sh status
 ```
 
 ### Step 4: Classify each commit

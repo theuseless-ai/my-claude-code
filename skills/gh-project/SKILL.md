@@ -1,38 +1,35 @@
 ---
 name: gh-project
-description: "Query GitHub Project boards, milestone status, gap analysis, stale work detection, and VERSION manifests using the pm.sh CLI.\nTRIGGER when: agent needs GitHub Project board data, milestone progress, release readiness checks, gap analysis, stale PR detection, or any project-level query.\nDO NOT TRIGGER when: agent is creating/deleting tags (use gh-release), monitoring CI runs (use gh-ci), or reviewing recent commit history (use gh-activity)."
-allowed-tools:
-  - Bash
-  - Read
-  - Grep
-  - Glob
+description: "Query GitHub Project boards, milestone status, gap analysis, stale work detection, and VERSION manifests using the pm.sh CLI."
+when_to_use: "TRIGGER when: agent needs GitHub Project board data, milestone progress, release readiness checks, gap analysis, stale PR detection, or any project-level query.\nDO NOT TRIGGER when: agent is creating/deleting tags (use gh-release), monitoring CI runs (use gh-ci), or reviewing recent commit history (use gh-activity)."
+allowed-tools: Bash(gh *) Bash(jq *) Bash(${CLAUDE_PLUGIN_ROOT}/scripts/pm.sh *)
 ---
 
 # gh-project — GitHub Project Board Queries
 
 ## Primary Tool: pm.sh
 
-**ALWAYS prefer `$HOME/.claude/scripts/pm.sh` over raw `gh project` commands.** It is faster, cheaper, and handles context discovery automatically.
+**ALWAYS prefer `${CLAUDE_PLUGIN_ROOT}/scripts/pm.sh` over raw `gh project` commands.** It is faster, cheaper, and handles context discovery automatically.
 
 ### Commands
 
 | Command | Purpose | Example |
 |---|---|---|
-| `pm.sh status` | Overall project status: milestones, repos, progress | `$HOME/.claude/scripts/pm.sh status` |
-| `pm.sh milestone <version>` | Items in a specific milestone with progress | `$HOME/.claude/scripts/pm.sh milestone v0.5.0` |
-| `pm.sh repos` | Breakdown of all items by repository | `$HOME/.claude/scripts/pm.sh repos` |
-| `pm.sh versions` | Read VERSION file (current dir or org repos) | `$HOME/.claude/scripts/pm.sh versions` |
-| `pm.sh ready <version>` | Check if a milestone is ready to ship | `$HOME/.claude/scripts/pm.sh ready v0.4.0` |
-| `pm.sh stale` | Find stale PRs and orphan branches across org | `$HOME/.claude/scripts/pm.sh stale` |
-| `pm.sh gaps` | Reconcile board state vs actual repo state | `$HOME/.claude/scripts/pm.sh gaps` |
+| `pm.sh status` | Overall project status: milestones, repos, progress | `${CLAUDE_PLUGIN_ROOT}/scripts/pm.sh status` |
+| `pm.sh milestone <version>` | Items in a specific milestone with progress | `${CLAUDE_PLUGIN_ROOT}/scripts/pm.sh milestone v0.5.0` |
+| `pm.sh repos` | Breakdown of all items by repository | `${CLAUDE_PLUGIN_ROOT}/scripts/pm.sh repos` |
+| `pm.sh versions` | Read VERSION file (current dir or org repos) | `${CLAUDE_PLUGIN_ROOT}/scripts/pm.sh versions` |
+| `pm.sh ready <version>` | Check if a milestone is ready to ship | `${CLAUDE_PLUGIN_ROOT}/scripts/pm.sh ready v0.4.0` |
+| `pm.sh stale` | Find stale PRs and orphan branches across org | `${CLAUDE_PLUGIN_ROOT}/scripts/pm.sh stale` |
+| `pm.sh gaps` | Reconcile board state vs actual repo state | `${CLAUDE_PLUGIN_ROOT}/scripts/pm.sh gaps` |
 
 ### Context Flags
 
 pm.sh auto-discovers org and project from the current git repo. Override when needed:
 
 ```bash
-$HOME/.claude/scripts/pm.sh --org <org> --project <num> status
-$HOME/.claude/scripts/pm.sh --repo <owner/repo> versions
+${CLAUDE_PLUGIN_ROOT}/scripts/pm.sh --org <org> --project <num> status
+${CLAUDE_PLUGIN_ROOT}/scripts/pm.sh --repo <owner/repo> versions
 ```
 
 ## When pm.sh Is Not Enough

@@ -1,11 +1,8 @@
 ---
 name: gh-ci
-description: "Monitor GitHub Actions workflows, check CI/CD status, read failure logs, wait for CI to pass.\nTRIGGER when: agent needs to check workflow run status, monitor a CI pipeline, read CI failure logs, wait for a workflow to complete, or diagnose a GitHub Actions failure.\nDO NOT TRIGGER when: agent is creating/deleting tags (use gh-release), querying project boards (use gh-project), or working with local test runners."
-allowed-tools:
-  - Bash
-  - Read
-  - Grep
-  - Glob
+description: "Monitor GitHub Actions workflows, check CI/CD status, read failure logs, wait for CI to pass."
+when_to_use: "TRIGGER when: agent needs to check workflow run status, monitor a CI pipeline, read CI failure logs, wait for a workflow to complete, or diagnose a GitHub Actions failure.\nDO NOT TRIGGER when: agent is creating/deleting tags (use gh-release), querying project boards (use gh-project), or working with local test runners."
+allowed-tools: Bash(gh *) Bash(jq *)
 ---
 
 # gh-ci — GitHub Actions Workflow Monitoring

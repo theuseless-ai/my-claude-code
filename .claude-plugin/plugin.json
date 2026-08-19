@@ -1,0 +1,12 @@
+{
+  "name": "oh-my-claudecode",
+  "description": "Multi-agent orchestration for Claude Code: a roster of 13 specialist agents behind an intent-classification gate, plus a plan/review/execute pipeline.",
+  "version": "2.0.0",
+  "author": {
+    "name": "Tachikoma"
+  },
+  "homepage": "https://github.com/theuseless-ai/oh-my-claudecode",
+  "repository": "https://github.com/theuseless-ai/oh-my-claudecode",
+  "license": "MIT",
+  "keywords": ["orchestration", "subagents", "planning", "delegation", "workflow"]
+}

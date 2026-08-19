@@ -2,11 +2,7 @@
 name: git-master
 description: "Advanced git workflows: atomic commits, interactive rebase, history search, conflict resolution, cherry-pick, and branch management."
 disable-model-invocation: true
-allowed-tools:
-  - Bash
-  - Read
-  - Grep
-  - Glob
+allowed-tools: Bash(git *)
 ---
 
 # Git Master — Advanced Git Workflows

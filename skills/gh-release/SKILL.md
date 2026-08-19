@@ -1,11 +1,8 @@
 ---
 name: gh-release
-description: "Git tag and release management for GitHub repos: create/delete tags, cut release candidates (RC), promote RC to stable, read VERSION manifests.\nTRIGGER when: agent needs to create or delete git tags, promote an RC to stable, manage release candidates, read VERSION files for component version mapping, or execute any part of a release workflow.\nDO NOT TRIGGER when: agent is only querying CI status (use gh-ci), only reading project board data (use gh-project), or discussing releases without executing them."
-allowed-tools:
-  - Bash
-  - Read
-  - Grep
-  - Glob
+description: "Git tag and release management for GitHub repos: create/delete tags, cut release candidates (RC), promote RC to stable, read VERSION manifests."
+when_to_use: "TRIGGER when: agent needs to create or delete git tags, promote an RC to stable, manage release candidates, read VERSION files for component version mapping, or execute any part of a release workflow.\nDO NOT TRIGGER when: agent is only querying CI status (use gh-ci), only reading project board data (use gh-project), or discussing releases without executing them."
+allowed-tools: Bash(gh *) Bash(git tag:*) Bash(git push:*) Bash(jq *) Bash(${CLAUDE_PLUGIN_ROOT}/scripts/pm.sh *)
 ---
 
 # gh-release — Git Tag & Release Management
@@ -22,7 +19,7 @@ The VERSION file maps the project-level version to per-repo component versions. 
 
 ```bash
 # Using pm.sh (preferred — handles auto-discovery)
-$HOME/.claude/scripts/pm.sh versions
+${CLAUDE_PLUGIN_ROOT}/scripts/pm.sh versions
 
 # Direct file read (if in the correct repo)
 cat VERSION
@@ -35,7 +32,7 @@ Follow this sequence exactly:
 ### 1. Read the VERSION manifest
 
 ```bash
-$HOME/.claude/scripts/pm.sh versions
+${CLAUDE_PLUGIN_ROOT}/scripts/pm.sh versions
 ```
 
 ### 2. Confirm versions with the user

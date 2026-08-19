@@ -2,13 +2,7 @@
 name: playwright
 description: "Browser automation and E2E testing with Playwright. Navigate pages, fill forms, click elements, capture screenshots, and write end-to-end tests."
 disable-model-invocation: true
-allowed-tools:
-  - Bash
-  - Read
-  - Write
-  - Edit
-  - Grep
-  - Glob
+allowed-tools: Bash(npx playwright *) Bash(npm *)
 ---
 
 # Playwright Browser Automation

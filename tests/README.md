@@ -4,7 +4,7 @@ Plain bash scripts, no framework. Each is standalone and exits non-zero if any
 assertion fails.
 
 ```bash
-./tests/test-install-prune.sh     # run one
+./tests/test-plugin-structure.sh  # run one
 for t in tests/test-*.sh; do "$t" || exit 1; done   # run all
 ```
 
@@ -14,8 +14,9 @@ for t in tests/test-*.sh; do "$t" || exit 1; done   # run all
 - Everything happens inside a `mktemp -d` sandbox removed on exit. A test must
   never touch the developer's real `~/.claude` or `~/.oh-my-claudecode` — tests
   that install things do so against a throwaway `--target`.
-- `install.sh` tests exercise the **working tree** copy, not `HEAD`, so
-  uncommitted changes are covered.
+- Tests exercise the **working tree**, not `HEAD`, so uncommitted changes are
+  covered. `claude plugin validate . --strict` is the companion check and runs
+  against the same tree.
 - Derive fixtures from repo contents (agent names, skill dirs) rather than
   hardcoding them, so renames don't break the suite.
 - Requires `git` and `jq`. The `--uninstall` test additionally needs `script`
