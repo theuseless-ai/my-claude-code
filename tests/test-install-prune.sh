@@ -43,7 +43,7 @@ sbgit() { local d="$1"; shift; git -C "$d" -c user.email=test@example.invalid -c
 # repo and every `git pull --ff-only` in the suite fails.
 mkdir -p "$UPSTREAM"
 cp -R "$REPO_ROOT/.claude" "$UPSTREAM/"
-for f in install.sh CLAUDE.md .mcp.json; do
+for f in install.sh CLAUDE.md; do
     [[ -e "$REPO_ROOT/$f" ]] && cp "$REPO_ROOT/$f" "$UPSTREAM/$f"
 done
 git init -q -b main "$UPSTREAM" 2>/dev/null || git init -q "$UPSTREAM"
@@ -104,7 +104,6 @@ cp "$TGT/agents/$V1.md" "$SB/$V1.orig"
 hr "dry-run lists orphans, removes nothing, mutates nothing"
 sbgit "$CLONE" rm -q ".claude/agents/$V1.md"
 sbgit "$CLONE" rm -rq ".claude/skills/$SKILL"
-sbgit "$CLONE" rm -q ".mcp.json"                  # protected: must NOT be pruned
 sbgit "$CLONE" commit -qm "simulate upstream deletions"
 echo "/etc/passwd" >> "$MAN"                      # outside target: must be ignored
 echo "$TGT/agents/never-existed.md" >> "$MAN"     # already gone: must be ignored
@@ -122,7 +121,6 @@ hr "prune removes orphans and backs them up"
 "${RUN[@]}" --prune --yes --target "$TGT" > "$SB/o5" 2>&1
 check "orphaned agent removed" "[[ ! -f '$TGT/agents/$V1.md' ]]"
 check "emptied skill dir collapsed" "[[ ! -d '$TGT/skills/$SKILL' ]]"
-check ".mcp.json preserved (protected)" "[[ -f '$TGT/.mcp.json' ]]"
 check "path outside target ignored" "[[ -f /etc/passwd ]]"
 check "missing path ignored without error" "! grep -q 'Could not remove' '$SB/o5'"
 BK=$(compgen -G "$CLONE/.pruned.*" | head -1)
@@ -131,6 +129,15 @@ check "backup content matches original" "cmp -s '$BK/agents/$V1.md' '$SB/$V1.ori
 check "manifest no longer lists it" "! grep -q 'agents/$V1.md' '$MAN'"
 check "ledger no longer lists it" "! grep -q 'agents/$V1.md' '$OWNED'"
 check "manifest still lists a kept agent" "grep -q 'agents/$KEEP.md' '$MAN'"
+
+hr "protected basenames are never pruned"
+# settings.json is merged with the user's own config, so prune must skip it even
+# when it is listed in the manifest as an orphan.
+printf '%s\n' "$TGT/settings.json" >> "$MAN"
+printf '%s\n' "$TGT/settings.json" >> "$OWNED"
+"${RUN[@]}" --prune --yes --target "$TGT" > "$SB/oprot" 2>&1
+check "settings.json not listed as prunable" "! grep -q 'settings.json' '$SB/oprot'"
+check "settings.json still on disk" "[[ -s '$TGT/settings.json' ]]"
 
 hr "prune is idempotent"
 "${RUN[@]}" --prune --yes --target "$TGT" > "$SB/o6" 2>&1

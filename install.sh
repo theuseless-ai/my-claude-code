@@ -165,17 +165,26 @@ merge_settings() {
         # Union two arrays, removing duplicates
         def union_arrays: (.[0] + .[1]) | unique;
 
-        # Merge hook event arrays: append entries whose command does not already exist
+        # Identity for a hook entry, used to detect duplicates.
+        #
+        # Compares on (matcher, hook script basenames) rather than the raw command
+        # string: the source ships "bash .claude/hooks/x.sh" while the installed copy
+        # has been absolutised to "bash /home/u/.claude/hooks/x.sh". Comparing raw
+        # strings never matched, so every --update appended another copy of every hook.
+        def entry_key:
+            ((.matcher // "") + "::" +
+             ([(.hooks // [])[] | (.command // "") | sub("^.*/"; "")] | join("|")));
+
+        # Merge hook event arrays, keeping the first entry seen for each identity.
+        # Folds over base AND new so pre-existing duplicates collapse on upgrade.
         def merge_hook_event($base_entries; $new_entries):
-            ($base_entries | [.[] | .hooks[]?.command // ""] | map(select(. != ""))) as $existing_cmds |
-            reduce ($new_entries | .[]) as $entry ($base_entries;
-                ($entry | .hooks[]?.command // "") as $cmd |
-                if ($cmd != "" and ($existing_cmds | index($cmd) != null)) then
-                    .
-                else
-                    . + [$entry]
-                end
-            );
+            reduce ((($base_entries // []) + ($new_entries // []))[]) as $entry
+                ({seen: {}, out: []};
+                    ($entry | entry_key) as $k |
+                    if (.seen | has($k)) then . else
+                        {seen: (.seen + {($k): true}), out: (.out + [$entry])}
+                    end
+                ) | .out;
 
         # Merge all hooks objects
         def merge_hooks($base; $overlay):
@@ -229,31 +238,37 @@ merge_settings() {
 }
 
 # ---------------------------------------------------------------------------
-# Fix relative paths in settings.json for global install
+# Fix relative paths in settings.json for the *install target*
+#
+# The repo ships paths relative to its own .claude/ dir. Rewrite them to absolute
+# paths under $TARGET_DIR — not $HOME/.claude, which would send a --target install
+# back to the default directory.
 # ---------------------------------------------------------------------------
 fix_paths() {
     local settings_file="$1"
     [[ -f "$settings_file" ]] || return
 
     local fixed
-    if fixed=$(jq --arg home "$HOME" '
-        # Fix statusLine command path
+    if fixed=$(jq --arg target "$TARGET_DIR" '
+        # statusLine command lives at the target root
         (if .statusLine.command then
-            .statusLine.command = ($home + "/.claude/statusline.sh")
+            .statusLine.command = ($target + "/statusline.sh")
         else . end) |
 
-        # Fix outputStyle path
-        (if .outputStyle then
-            .outputStyle = ($home + "/.claude/output-styles/oh-my-claudecode.md")
-        else . end) |
+        # outputStyle is a style NAME, never a path — leave it alone.
 
-        # Fix hook command paths: replace "bash .claude/hooks/" with absolute path
+        # Hook commands: "bash .claude/hooks/x.sh" -> "bash <target>/hooks/x.sh".
+        # Also re-point hooks already absolutised against a different target, so
+        # repeat installs converge instead of accumulating variants.
         (if .hooks then
             .hooks |= with_entries(
                 .value |= [.[] |
                     .hooks |= [.[] |
-                        if (.command | test("bash \\.claude/hooks/")) then
-                            .command |= sub("bash \\.claude/hooks/"; "bash " + $home + "/.claude/hooks/")
+                        if (.command | type) == "string" then
+                            .command |= (
+                                sub("bash .*/\\.claude/hooks/"; "bash " + $target + "/hooks/")
+                                | sub("bash \\.claude/hooks/"; "bash " + $target + "/hooks/")
+                            )
                         else . end
                     ]
                 ]
@@ -261,7 +276,7 @@ fix_paths() {
         else . end)
     ' "$settings_file" 2>&1); then
         printf '%s\n' "$fixed" > "$settings_file"
-        success "Fixed paths in settings.json for global install"
+        success "Fixed paths in settings.json for $TARGET_DIR"
     else
         warn "Path fix failed: $fixed"
     fi
@@ -408,33 +423,6 @@ copy_files() {
             success "Installed CLAUDE.md (global orchestration protocol)"
         fi
         manifest_entries+=("$TARGET_DIR/CLAUDE.md")
-    fi
-
-    # --- .mcp.json (global MCP servers) ---
-    if [[ -f "$CLONE_DIR/.mcp.json" ]]; then
-        if [[ $list_only -eq 0 ]]; then
-            if [[ -f "$TARGET_DIR/.mcp.json" ]]; then
-                # Merge: add our servers to existing, don't overwrite
-                local ts
-                ts=$(get_timestamp)
-                cp "$TARGET_DIR/.mcp.json" "$TARGET_DIR/.mcp.json.bak.${ts}"
-                if merged_mcp=$(jq -n '
-                    (input) as $existing |
-                    (input) as $ours |
-                    $existing * { mcpServers: (($existing.mcpServers // {}) + ($ours.mcpServers // {})) }
-                ' "$TARGET_DIR/.mcp.json" "$CLONE_DIR/.mcp.json" 2>&1); then
-                    printf '%s\n' "$merged_mcp" > "$TARGET_DIR/.mcp.json"
-                    success "Merged .mcp.json (added MCP servers, backed up original)"
-                else
-                    warn "MCP merge failed; copying ours (backup preserved)"
-                    cp "$CLONE_DIR/.mcp.json" "$TARGET_DIR/.mcp.json"
-                fi
-            else
-                cp "$CLONE_DIR/.mcp.json" "$TARGET_DIR/.mcp.json"
-                success "Installed .mcp.json (Context7 MCP server)"
-            fi
-        fi
-        manifest_entries+=("$TARGET_DIR/.mcp.json")
     fi
 
     # Write manifest (or, in --list-only mode, the would-install list)
@@ -602,8 +590,6 @@ report_prunable() {
 print_notes() {
     printf "\n"
     printf "  ${CYAN}Notes:${RESET}\n"
-    printf "    - ${GREEN}.mcp.json${RESET} installed globally — Context7 is available in all projects.\n"
-    printf "\n"
     printf "    - ${YELLOW}.sisyphus/${RESET} directory is per-project (plans, audit logs).\n"
     printf "      It will be created automatically when using prometheus/atlas.\n"
     printf "\n"
@@ -788,9 +774,15 @@ do_uninstall() {
         for list in "$MANIFEST_FILE" "$OWNED_FILE"; do
             [[ -f "$list" ]] && cat "$list" >> "$all_owned"
         done
+        local ufile ubase
         while IFS= read -r filepath; do
             [[ -n "$filepath" ]] || continue
             [[ "$filepath" == "$TARGET_DIR"/* ]] || continue
+            # Same guard prune uses: never delete files we merge into rather than own.
+            ubase=$(basename "$filepath")
+            case " $PROTECTED_BASENAMES " in
+                *" $ubase "*) continue ;;
+            esac
             if [[ -f "$filepath" ]]; then
                 rm "$filepath"
                 removed=$((removed + 1))

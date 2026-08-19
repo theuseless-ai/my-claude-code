@@ -8,7 +8,7 @@ Multi-agent orchestration system for Claude Code, inspired by [oh-my-openagent](
 curl -fsSL https://raw.githubusercontent.com/theuseless-ai/my-claude-code/main/install.sh | bash
 ```
 
-That's it. Agents, hooks, skills, status line, and Context7 MCP — all installed globally.
+That's it. Agents, hooks, skills, and status line — all installed globally.
 
 ```bash
 # Update to latest
@@ -75,7 +75,7 @@ alias claude_work="CLAUDE_CONFIG_DIR=~/.claude_work claude --agent sisyphus"
 
 ## What This Is
 
-A set of Claude Code native configurations (agents, skills, hooks, MCP servers) that replicate the multi-agent orchestration workflow from oh-my-openagent — adapted for Claude Code's primitives.
+A set of Claude Code native configurations (agents, skills, hooks) that replicate the multi-agent orchestration workflow from oh-my-openagent — adapted for Claude Code's primitives.
 
 ## Agent Roster
 
@@ -84,7 +84,7 @@ A set of Claude Code native configurations (agents, skills, hooks, MCP servers) 
 | **Sisyphus** | Main orchestrator — classifies intent, delegates to specialists | opus | Orchestrator |
 | **Hephaestus** | Autonomous deep implementation — complex multi-file work | fable | Worker |
 | **Oracle** | Architecture advisor, debugging expert | fable | Read-only |
-| **Librarian** | Documentation & library research via Context7 | sonnet | Read-only |
+| **Librarian** | Documentation & library research via web fetch/search | sonnet | Read-only |
 | **Explore** | Fast codebase search specialist | haiku | Read-only |
 | **Atlas** | Plan executor — dispatches tasks wave-by-wave | opus | Orchestrator |
 | **Prometheus** | Strategic planner — creates dependency-aware work plans | fable | Planner |
@@ -122,10 +122,6 @@ Sisyphus (intent classification)
 - **non-interactive-env** — Blocks interactive TUI commands (vim, less, etc.)
 - **context-preserver** — Preserves active plan state during context compaction
 
-## MCP Servers
-
-- **Context7** — Official documentation lookup for libraries/frameworks
-
 ## Usage
 
 ### As Default Orchestrator
@@ -156,11 +152,10 @@ This triggers: metis → prometheus → momus → atlas
 
 ```
 .claude/
-├── agents/          # 12 agent definitions
-├── skills/          # 3 skill definitions
+├── agents/          # 13 agent definitions
+├── skills/          # 7 skill definitions
 ├── hooks/           # Hook scripts
 └── settings.json    # Hook wiring
-.mcp.json            # MCP server config
 .sisyphus/
 ├── plans/           # Work plans (created by prometheus)
 ├── drafts/          # Draft plans

@@ -23,7 +23,7 @@ Before taking ANY action, classify the user's message:
 | Domain | Agent | When To Use |
 |---|---|---|
 | Codebase search, patterns, structure | `explore` | Find files, grep patterns, understand structure. FAST + FREE. Fire multiple in parallel. |
-| External docs, library research, unfamiliar APIs | `librarian` | Unfamiliar package, weird behavior, need official docs. Uses Context7 MCP. |
+| External docs, library research, unfamiliar APIs | `librarian` | Unfamiliar package, weird behavior, need official docs. Researches in its own context. |
 | Architecture decisions, complex debugging | `oracle` | Multi-system tradeoffs, after 2+ failed fix attempts, post-implementation review. READ-ONLY. |
 | Complex multi-file implementation | `hephaestus` | Large features, deep refactors, autonomous multi-step work. |
 | Scoped single-task implementation | `sisyphus-junior` | Small, well-defined tasks. Lightweight and fast. |
@@ -55,7 +55,7 @@ Before doing work directly, ask yourself:
 ## Anti-Patterns — NEVER Do These
 
 - **Never grep manually** when `explore` exists — it's free, fire it
-- **Never search docs yourself** when `librarian` has Context7 MCP access
+- **Never search docs yourself** when `librarian` can do it in its own context
 - **Never plan manually** when `prometheus` creates structured plans
 - **Never review your own plan** when `momus` catches what you miss
 - **Never implement directly** when the task spans 2+ modules — delegate to `hephaestus`
@@ -114,25 +114,27 @@ For complex tasks, follow the full planning pipeline:
 - `/git-master` — Advanced git workflows (atomic commits, rebase, history search)
 - `/frontend-ui-ux` — Design-first UI development methodology
 
-## Agent Teams
+## Parallelism
 
-Native Agent Teams allow atlas to spawn parallel teammates (hephaestus, sisyphus-junior) that share a task list and coordinate via inter-teammate messaging. This is an alternative to sequential subagent dispatch.
-
-**When to use teams vs subagents:**
+Parallel work is done with **subagent dispatch**, not agent teams: issue several Agent
+calls in a single message and read each result as it returns.
 
 | Scenario | Use |
 |---|---|
-| 3+ independent tasks in a wave | Native agent team |
-| Tightly coupled sequential tasks | Subagent dispatch |
+| 3+ independent tasks in a wave | Parallel Agent calls in one message |
+| Workers writing files concurrently | Parallel dispatch + `isolation: worktree` |
+| Tightly coupled sequential tasks | Sequential subagent dispatch |
 | Single complex task | Direct hephaestus delegation |
 | Simple scoped task | Direct sisyphus-junior delegation |
 
-**Requirements:**
-- Enabled via `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` (set in `.claude/settings.json`)
-- Requires Claude Code v2.1.32+
-- **Experimental** — behavior may change between versions
+**Why not agent teams.** Teams are experimental and off by default here
+(`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: "0"`). With teams on, a subagent that gets a
+name launches as a teammate instead, and a teammate reports only an idle notification —
+its output never comes back to the caller. That silently breaks every consultative agent
+in this roster, whose whole value is the report it returns. Teammates also cannot spawn
+teammates, and only the main session can lead a team, so atlas — itself a subagent —
+can never be a lead.
 
-**Hooks integration:**
-- `TaskCompleted` hook runs `task-completed-gate.sh` for quality validation
-- `TeammateIdle` hook runs `teammate-idle-check.sh` for stall detection
-- Audit log written to `.sisyphus/team-audit.log`
+If you want a team, you drive it yourself from the main session; the agent definitions
+in `.claude/agents/` are reusable as teammate types. Note that `skills:` and
+`mcpServers:` frontmatter are not applied when a definition runs as a teammate.

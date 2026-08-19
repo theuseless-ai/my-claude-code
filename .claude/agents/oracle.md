@@ -2,7 +2,7 @@
 name: oracle
 description: "Architecture advisor and debugging expert. Use for complex architecture decisions, after 2+ failed fix attempts, or for post-implementation review. Read-only consultation."
 model: fable
-allowed-tools:
+tools:
   - Read
   - Grep
   - Glob

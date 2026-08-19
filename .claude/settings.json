@@ -1,5 +1,5 @@
 {
-  "outputStyle": ".claude/output-styles/oh-my-claudecode.md",
+  "outputStyle": "oh-my-claudecode",
   "statusLine": {
     "type": "command",
     "command": ".claude/statusline.sh",
@@ -55,20 +55,19 @@
       "Bash(python3 *)",
       "Bash(python *)",
       "Bash(source *)",
-      "Bash(cd *)",
-      "mcp__context7__*"
+      "Bash(cd *)"
     ],
     "deny": [
       "Bash(git push --force *)",
       "Bash(git push -f *)",
-      "Bash(rm -rf /)*",
-      "Bash(rm -rf ~)*",
+      "Bash(rm -rf /:*)",
+      "Bash(rm -rf ~:*)",
       "Bash(> /etc/*)",
       "Bash(chmod 777 *)"
     ]
   },
   "env": {
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "0"
   },
   "hooks": {
     "PreToolUse": [

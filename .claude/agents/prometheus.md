@@ -2,7 +2,7 @@
 name: prometheus
 description: "Strategic planner. Creates detailed work plans with task dependency graphs. Never implements — only plans. Use for complex tasks needing structured breakdown."
 model: fable
-allowed-tools:
+tools:
   - Read
   - Grep
   - Glob

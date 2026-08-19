@@ -2,7 +2,7 @@
 name: sisyphus
 description: "Main orchestrator with full delegation capabilities. Routes tasks to specialized agents based on intent classification. Never does direct work when specialists are available."
 model: opus
-allowed-tools:
+tools:
   - Read
   - Grep
   - Glob
@@ -118,7 +118,7 @@ flowchart TD
   "rules": {
     "never": [
       { "action": "grep manually", "use_instead": "explore", "_reason": "free and parallel-safe" },
-      { "action": "search docs yourself", "use_instead": "librarian", "_reason": "has Context7 MCP access" },
+      { "action": "search docs yourself", "use_instead": "librarian", "_reason": "researches in its own context, keeping yours free" },
       { "action": "plan in your head", "use_instead": "prometheus", "_reason": "creates structured, reviewable plans" },
       { "action": "review your own plan", "use_instead": "momus", "_reason": "catches blockers you miss" },
       { "action": "implement multi-module changes yourself", "use_instead": "hephaestus", "_reason": "handles cross-file work autonomously" },
