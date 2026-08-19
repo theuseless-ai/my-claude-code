@@ -13,14 +13,14 @@ intent-classification gate, plus a plan → review → execute pipeline. Inspire
 
 Agents, skills and hooks load on the next session. Update with `/plugin update`.
 
-Then run the configure script once. Two pieces of config **cannot** travel in a
-plugin, verified against Claude Code 2.1.235 both through `--plugin-dir` and after
-a real marketplace install:
+Then run the configure script once. Three pieces of config **cannot** travel in a
+plugin, verified against Claude Code 2.1.235:
 
 | | Why a plugin can't ship it |
 |---|---|
-| Permission rules | A plugin's `settings.json` honours only `agent` and `subagentStatusLine`; a `permissions` block in it is silently ignored |
+| Permission rules | A plugin's `settings.json` honours only `agent` and `subagentStatusLine`; a `permissions` block in it is silently ignored — confirmed both through `--plugin-dir` and after a real marketplace install |
 | The output style | A plugin's `output-styles/` never registers, with or without `force-for-plugin` |
+| The status line | `statusLine` is not among the keys a plugin's `settings.json` honours |
 
 ```bash
 git clone https://github.com/theuseless-ai/oh-my-claudecode
@@ -29,15 +29,16 @@ cd oh-my-claudecode
 ./configure.sh             # apply (asks first)
 ```
 
-It writes the recommended permissions into your `settings.json` and copies the
-output style into your config directory. It does **not** install agents, skills or
-hooks — the plugin owns those, and a second copy in `~/.claude` would shadow it.
-That is exactly what the pre-2.0 installer got wrong.
+It writes the recommended permissions into your `settings.json`, and copies the
+output style and status line into your config directory. It does **not** install
+agents, skills or hooks — the plugin owns those, and a second copy in `~/.claude`
+would shadow it. That is exactly what the pre-2.0 installer got wrong.
 
 Your existing settings are preserved: permissions are unioned rather than replaced,
 the file is backed up first, and a second run changes nothing. `./configure.sh
---revert` removes exactly what it added and leaves your own rules alone. Pass
-`--no-style` for permissions only.
+--revert` removes exactly what it added and leaves your own rules alone. A `statusLine` you
+already point somewhere else is never taken over — the script warns and skips.
+Pass `--no-style` or `--no-statusline` to opt out of either.
 
 To try the working tree without installing:
 
@@ -153,9 +154,30 @@ the parentheses — silently matches nothing.
 
 ## Status line
 
-Not shipped. The ecosystem does this better than we did — `claude-hud`, `cc-usage`,
-`claude-gauge` and `claude-telemetry` all read rate limits and track agents, which
-our old statusline never did.
+Two lines, installed by `configure.sh`:
+
+```
+Opus 5 (1M) │ ▓▓▓▓░░░░░░░░░░░░░░░░ 20% │ my-branch
+5h 19% (1h13m) · 7d 9% (6d0h)
+```
+
+Line 1 is model, a 20-cell context bar, the branch, and the active subagent when
+one is running. Line 2 carries the 5-hour and 7-day rate-limit windows with their
+reset countdowns, plus the current plan when `.sisyphus/plans/` has one. Both parts
+of line 2 are optional, so it is omitted entirely when there is nothing to show.
+
+Colour is shared across the bar and both quota readings: green below 70%, orange
+70-89%, red at 90% and above.
+
+The layout is budgeted to 80 columns in the worst case — 100% context with the
+longest agent name in the agent slot — which is why branch names are capped at 18
+characters. The statusline payload does not carry terminal width, so that is a
+fixed budget rather than an adaptive one. Raise `BRANCH_MAX` in
+`scripts/statusline.sh` if you run wider and want full branch names.
+
+`rate_limits` is only present for Claude.ai Pro/Max accounts, and only after the
+first API response of a session. Each window can be absent independently; the
+section is dropped when neither is available.
 
 ## Development
 

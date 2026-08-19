@@ -82,17 +82,23 @@ that is not something to wire into a global config. Re-evaluate if it matures.
 
 ## What the plugin cannot ship
 
-Two gaps, both verified rather than assumed: a `permissions` block in a plugin's
-`settings.json` is ignored, and a plugin's `output-styles/` never registers. Tested
-through `--plugin-dir` and after a real marketplace install, on 2.1.235.
+Three gaps, verified rather than assumed on 2.1.235: a `permissions` block in a
+plugin's `settings.json` is ignored (tested through `--plugin-dir` and after a real
+marketplace install), a plugin's `output-styles/` never registers, and `statusLine`
+is not among the keys plugin settings honour.
 
-`configure.sh` fills exactly those two and nothing else. Do not let it grow back
+`configure.sh` fills exactly those three and nothing else. Do not let it grow back
 into an installer: if it ever copies agents, skills or hooks into the config
 directory, those copies shadow the plugin, which is the bug that made 1.x rot. The
 suite asserts it creates no such directories.
 
-Retest both gaps on Claude Code upgrades; if either closes, delete that half of the
+Retest all three on Claude Code upgrades; if any closes, delete that part of the
 script.
+
+The status line lives at `scripts/statusline.sh` and is copied into the config
+directory rather than referenced in place: the plugin cache path carries a version
+number, so a `statusLine` pointing into it would break on every `/plugin update`.
+A `statusLine` already pointing elsewhere is never overwritten.
 
 ## Legacy
 

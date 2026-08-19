@@ -93,6 +93,14 @@ for f in $(find skills -name 'SKILL.md' | sort); do
     check "$n: no hardcoded \$HOME paths"      "! grep -q '\\\$HOME/\\.claude' '$f'"
 done
 
+hr "status line"
+check "statusline.sh ships"          "[[ -f scripts/statusline.sh ]]"
+check "statusline.sh parses"         "bash -n scripts/statusline.sh"
+check "statusline.sh executable"     "[[ -x scripts/statusline.sh ]]"
+check "no hardcoded home paths"      "! grep -qE '/home/|/Users/' scripts/statusline.sh"
+check "survives an empty payload"    "echo '{}' | bash scripts/statusline.sh > /dev/null"
+check "survives absent rate_limits"  "echo '{\"model\":{\"display_name\":\"M\"}}' | bash scripts/statusline.sh > /dev/null"
+
 hr "hooks"
 check "hooks.json is valid JSON"          "jq empty hooks/hooks.json"
 check "no PreCompact context injection"   "! jq -e '.hooks.PreCompact' hooks/hooks.json"
@@ -157,6 +165,17 @@ check "writes the output style"   "[[ -f '$CFG/output-styles/oh-my-claudecode.md
 check "style matches the repo copy" \
       "cmp -s output-styles/oh-my-claudecode.md '$CFG/output-styles/oh-my-claudecode.md'"
 
+check "installs and wires the status line" "
+  jq -e '.statusLine.command == \"$CFG/statusline.sh\"' '$CFG/settings.json' &&
+  [[ -x '$CFG/statusline.sh' ]] &&
+  cmp -s scripts/statusline.sh '$CFG/statusline.sh'"
+
+# The status line must actually run from where it was installed.
+check "installed status line renders" "
+  out=\$(echo '{\"model\":{\"display_name\":\"M\"},\"context_window\":{\"context_window_size\":1000,\"current_usage\":{\"input_tokens\":200}}}' \
+        | bash '$CFG/statusline.sh') &&
+  [[ -n \"\$out\" ]]"
+
 check "idempotent" "
   a=\$(md5sum < '$CFG/settings.json') &&
   ./configure.sh --yes --target '$CFG' > /dev/null &&
@@ -170,6 +189,11 @@ check "preserves the user's own rules" "
   ./configure.sh --yes --target '$CFG2' > /dev/null &&
   jq -e '.permissions.allow | index(\"Bash(terraform *)\")' '$CFG2/settings.json' &&
   [[ \$(jq -r .theme '$CFG2/settings.json') == dark ]]"
+check "revert unwires our status line" "
+  jq -e '.statusLine' '$CFG/settings.json' > /dev/null &&
+  ./configure.sh --revert --yes --target '$CFG' > /dev/null &&
+  ! jq -e '.statusLine' '$CFG/settings.json' > /dev/null 2>&1 &&
+  [[ ! -f '$CFG/statusline.sh' ]]"
 check "revert removes only ours" "
   ./configure.sh --revert --yes --target '$CFG2' > /dev/null &&
   jq -e '.permissions.allow | index(\"Bash(terraform *)\")' '$CFG2/settings.json' &&
@@ -183,6 +207,24 @@ check "warns about agent teams on a no-op run" "
   ./configure.sh --yes --target '$CFG3' > /dev/null 2>&1 &&
   out=\$(./configure.sh --yes --target '$CFG3' 2>&1) &&
   grep -q 'EXPERIMENTAL_AGENT_TEAMS' <<< \"\$out\""
+
+# A status line the user points elsewhere is theirs, not ours.
+CFG5="$SB/cfg5"; mkdir -p "$CFG5"
+printf '%s' '{"statusLine":{"type":"command","command":"/opt/mine.sh"}}' > "$CFG5/settings.json"
+check "never hijacks a foreign status line" "
+  ./configure.sh --yes --target '$CFG5' > /dev/null 2>&1 &&
+  [[ \$(jq -r '.statusLine.command' '$CFG5/settings.json') == /opt/mine.sh ]] &&
+  [[ ! -f '$CFG5/statusline.sh' ]]"
+check "revert leaves a foreign status line alone" "
+  ./configure.sh --revert --yes --target '$CFG5' > /dev/null 2>&1 &&
+  [[ \$(jq -r '.statusLine.command' '$CFG5/settings.json') == /opt/mine.sh ]]"
+
+CFG6="$SB/cfg6"; mkdir -p "$CFG6"
+check "--no-statusline skips it but still writes permissions" "
+  ./configure.sh --yes --no-statusline --target '$CFG6' > /dev/null 2>&1 &&
+  [[ ! -f '$CFG6/statusline.sh' ]] &&
+  ! jq -e '.statusLine' '$CFG6/settings.json' > /dev/null 2>&1 &&
+  jq -e '.permissions.allow | length > 0' '$CFG6/settings.json'"
 
 check "dry-run writes nothing" "
   rm -rf '$SB/cfg4' && mkdir -p '$SB/cfg4' &&
