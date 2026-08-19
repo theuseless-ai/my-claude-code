@@ -11,8 +11,33 @@ intent-classification gate, plus a plan → review → execute pipeline. Inspire
 /plugin install oh-my-claudecode@oh-my-claudecode
 ```
 
-That's it — agents, skills and hooks load on the next session. Update with
-`/plugin update`, and manage everything from `/plugin`.
+Agents, skills and hooks load on the next session. Update with `/plugin update`.
+
+Then run the configure script once. Two pieces of config **cannot** travel in a
+plugin, verified against Claude Code 2.1.235 both through `--plugin-dir` and after
+a real marketplace install:
+
+| | Why a plugin can't ship it |
+|---|---|
+| Permission rules | A plugin's `settings.json` honours only `agent` and `subagentStatusLine`; a `permissions` block in it is silently ignored |
+| The output style | A plugin's `output-styles/` never registers, with or without `force-for-plugin` |
+
+```bash
+git clone https://github.com/theuseless-ai/oh-my-claudecode
+cd oh-my-claudecode
+./configure.sh --dry-run   # show exactly what would change
+./configure.sh             # apply (asks first)
+```
+
+It writes the recommended permissions into your `settings.json` and copies the
+output style into your config directory. It does **not** install agents, skills or
+hooks — the plugin owns those, and a second copy in `~/.claude` would shadow it.
+That is exactly what the pre-2.0 installer got wrong.
+
+Your existing settings are preserved: permissions are unioned rather than replaced,
+the file is backed up first, and a second run changes nothing. `./configure.sh
+--revert` removes exactly what it added and leaves your own rules alone. Pass
+`--no-style` for permissions only.
 
 To try the working tree without installing:
 
@@ -26,15 +51,12 @@ claude --plugin-dir /path/to/oh-my-claudecode
 and will shadow the plugin, so clear them out first:
 
 ```bash
-git clone https://github.com/theuseless-ai/oh-my-claudecode
-cd oh-my-claudecode
 ./uninstall-legacy.sh --dry-run   # see what would go
 ./uninstall-legacy.sh             # remove it (asks first)
 ```
 
 It only removes files the old installer recorded as its own, and never touches
-`settings.json`. It will print the leftover `settings.json` entries to clean up by
-hand — the old hook wiring and `statusLine`.
+`settings.json`.
 
 ## Turning the orchestration on
 
@@ -48,24 +70,17 @@ claude --agent sisyphus
 Sisyphus carries the intent-classification gate and the delegation table, so routing
 happens from the first message.
 
-### Output style (manual step)
+### Output style
 
-The same protocol is also packaged as an output style at
-`output-styles/oh-my-claudecode.md`. **Plugin-shipped output styles do not currently
-register** — verified on Claude Code 2.1.235, where an installed and enabled plugin's
-style never reaches the system prompt, with or without `force-for-plugin`. Until that
-changes, copy it to your own config to use it:
+`configure.sh` installs it. If you skipped that or used `--no-style`, copy it by
+hand — plugin-shipped output styles do not register:
 
 ```bash
 mkdir -p ~/.claude/output-styles
-curl -fsSL https://raw.githubusercontent.com/theuseless-ai/oh-my-claudecode/main/output-styles/oh-my-claudecode.md \
-  -o ~/.claude/output-styles/oh-my-claudecode.md
+cp output-styles/oh-my-claudecode.md ~/.claude/output-styles/
 ```
 
-Then pick **oh-my-claudecode** under `/config` → Output style.
-
-Without either step you still get every agent, skill and hook — you just invoke the
-agents yourself rather than having Claude route to them.
+Then pick **oh-my-claudecode** under `/config` and Output style.
 
 ## Agent Roster
 
@@ -130,33 +145,11 @@ The `gh-*` skills auto-trigger; `git-master` and `playwright` are invoke-only.
 | `non-interactive-env` | `PreToolUse(Bash)` | Blocks TUI commands that would hang the session |
 | `context-preserver` | `SessionStart` | Injects active `.sisyphus/` plan and notepad state |
 
-## Recommended permissions
+## Permissions
 
-A plugin cannot ship permission rules, so add these to your own `settings.json` if
-you want the roster to run without constant prompting:
-
-```json
-{
-  "permissions": {
-    "allow": [
-      "Read", "Edit", "Write", "Glob", "Grep",
-      "Bash(git *)", "Bash(gh *)", "Bash(jq *)", "Bash(rg *)",
-      "Bash(npm *)", "Bash(npx *)", "Bash(node *)", "Bash(pytest *)",
-      "Bash(go *)", "Bash(cargo *)", "Bash(make *)", "Bash(python3 *)"
-    ],
-    "deny": [
-      "Bash(git push --force *)",
-      "Bash(git push -f *)",
-      "Bash(rm -rf /:*)",
-      "Bash(rm -rf ~:*)",
-      "Bash(chmod 777 *)"
-    ]
-  }
-}
-```
-
-Note the deny syntax: `Bash(cmd *)` and `Bash(cmd:*)` both match, but `Bash(cmd)*`
-— with the star outside the parentheses — silently matches nothing.
+`configure.sh` writes these. The deny syntax is worth knowing if you edit them:
+`Bash(cmd *)` and `Bash(cmd:*)` both match, but `Bash(cmd)*` — with the star outside
+the parentheses — silently matches nothing.
 
 ## Status line
 

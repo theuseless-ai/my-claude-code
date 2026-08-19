@@ -70,11 +70,11 @@ hr "agent capability fields"
 for n in oracle momus metis explore librarian multimodal-looker; do
     f="agents/$n.md"
     check "$n: permissionMode plan"        "grep -q '^permissionMode: plan$' '$f'"
-    check "$n: no Write in tools"          "! awk '/^---$/{k++;next} k==1' '$f' | grep -qE '^  - (Write|Edit)$'"
+    check "$n: no Write in tools"          "! grep -qE '^  - (Write|Edit)\$' <<< \"\$(awk '/^---\$/{k++;next} k==1' '$f')\""
 done
 # prometheus writes plans, so it must NOT be in plan mode.
 check "prometheus not in plan mode"        "! grep -q '^permissionMode: plan$' agents/prometheus.md"
-check "prometheus can write"               "awk '/^---$/{k++;next} k==1' agents/prometheus.md | grep -q '^  - Write$'"
+check "prometheus can write"               "grep -q '^  - Write\$' <<< \"\$(awk '/^---\$/{k++;next} k==1' agents/prometheus.md)\""
 
 # argus runs an autonomous loop; it must stay bounded.
 check "argus declares maxTurns"            "grep -qE '^maxTurns: [0-9]+$' agents/argus.md"
@@ -124,6 +124,16 @@ out=$(echo '{"tool_name":"Bash","tool_input":{"command":"vim x"}}' | bash hooks/
 check "non-interactive denies vim"           "jq -e '$DENY' <<< '$out'"
 out=$(echo '{"tool_name":"Bash","tool_input":{"command":"git log --oneline"}}' | bash hooks/non-interactive-env.sh)
 check "non-interactive allows git log"       "[[ -z '$out' ]]"
+out=$(echo '{"tool_name":"Bash","tool_input":{"command":"python3"}}' | bash hooks/non-interactive-env.sh)
+check "non-interactive denies a bare REPL"   "jq -e '$DENY' <<< '$out'"
+# Regression: an unbounded alternation made `vi` match "via", `top` match
+# "topic", `more` match "moreover" — ordinary prose in a heredoc tripped the guard.
+for word in "via the plugin dir" "topic: something" "moreover this is fine" \
+            "vital-check --run" "topology list" "python3 script.py"; do
+    out=$(echo "{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"$word\"}}" \
+          | bash hooks/non-interactive-env.sh)
+    check "non-interactive allows '$word'"   "[[ -z '$out' ]]"
+done
 
 mkdir -p "$SB/proj/.sisyphus/plans" && touch "$SB/proj/.sisyphus/plans/p.md"
 out=$(cd "$SB/proj" && echo '{}' | bash "$ROOT/hooks/context-preserver.sh")
@@ -132,10 +142,58 @@ check "context-preserver reports a plan" \
 out=$(cd "$SB" && echo '{}' | bash "$ROOT/hooks/context-preserver.sh")
 check "context-preserver silent with no state" "[[ -z '$out' ]]"
 
+hr "configure.sh — the two things a plugin cannot ship"
+CFG="$SB/cfg"; mkdir -p "$CFG"
+check "configure.sh parses"       "bash -n configure.sh"
+check "configure.sh executable"   "[[ -x configure.sh ]]"
+
+# Must never install plugin-owned components — a second copy in ~/.claude
+# shadows the plugin. That was the pre-2.0 bug.
+check "does not copy agents/skills/hooks" "
+  ./configure.sh --yes --target '$CFG' > /dev/null &&
+  [[ ! -d '$CFG/agents' && ! -d '$CFG/skills' && ! -d '$CFG/hooks' ]]"
+check "writes permissions"        "jq -e '.permissions.allow | index(\"Bash(gh *)\")' '$CFG/settings.json'"
+check "writes the output style"   "[[ -f '$CFG/output-styles/oh-my-claudecode.md' ]]"
+check "style matches the repo copy" \
+      "cmp -s output-styles/oh-my-claudecode.md '$CFG/output-styles/oh-my-claudecode.md'"
+
+check "idempotent" "
+  a=\$(md5sum < '$CFG/settings.json') &&
+  ./configure.sh --yes --target '$CFG' > /dev/null &&
+  b=\$(md5sum < '$CFG/settings.json') &&
+  [[ \"\$a\" == \"\$b\" ]]"
+
+# Pre-existing user config must survive both apply and revert.
+CFG2="$SB/cfg2"; mkdir -p "$CFG2"
+printf '%s' '{"theme":"dark","permissions":{"allow":["Bash(terraform *)"]}}' > "$CFG2/settings.json"
+check "preserves the user's own rules" "
+  ./configure.sh --yes --target '$CFG2' > /dev/null &&
+  jq -e '.permissions.allow | index(\"Bash(terraform *)\")' '$CFG2/settings.json' &&
+  [[ \$(jq -r .theme '$CFG2/settings.json') == dark ]]"
+check "revert removes only ours" "
+  ./configure.sh --revert --yes --target '$CFG2' > /dev/null &&
+  jq -e '.permissions.allow | index(\"Bash(terraform *)\")' '$CFG2/settings.json' &&
+  [[ \$(jq -r '.permissions.allow | index(\"Bash(gh *)\") // \"gone\"' '$CFG2/settings.json') == gone ]] &&
+  [[ \$(jq -r .theme '$CFG2/settings.json') == dark ]]"
+
+# The teams warning must fire even when there is nothing else to change.
+CFG3="$SB/cfg3"; mkdir -p "$CFG3"
+printf '%s' '{"env":{"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS":"1"}}' > "$CFG3/settings.json"
+check "warns about agent teams on a no-op run" "
+  ./configure.sh --yes --target '$CFG3' > /dev/null 2>&1 &&
+  out=\$(./configure.sh --yes --target '$CFG3' 2>&1) &&
+  grep -q 'EXPERIMENTAL_AGENT_TEAMS' <<< \"\$out\""
+
+check "dry-run writes nothing" "
+  rm -rf '$SB/cfg4' && mkdir -p '$SB/cfg4' &&
+  ./configure.sh --dry-run --target '$SB/cfg4' > /dev/null &&
+  ! jq -e '.permissions' '$SB/cfg4/settings.json' > /dev/null 2>&1 &&
+  [[ ! -d '$SB/cfg4/output-styles' ]]"
+
 hr "legacy uninstaller"
 check "uninstall-legacy.sh parses"        "bash -n uninstall-legacy.sh"
 check "uninstall-legacy.sh executable"    "[[ -x uninstall-legacy.sh ]]"
-check "no-op when no legacy install"      "OMC_CLONE_DIR='$SB/absent' bash uninstall-legacy.sh --yes | grep -q 'No legacy install'"
+check "no-op when no legacy install"      "out=\$(OMC_CLONE_DIR='$SB/absent' bash uninstall-legacy.sh --yes) && grep -q 'No legacy install' <<< \"\$out\""
 check "dry-run removes nothing" "
   mkdir -p '$SB/tgt/agents' '$SB/clone' &&
   touch '$SB/tgt/agents/x.md' '$SB/tgt/settings.json' &&

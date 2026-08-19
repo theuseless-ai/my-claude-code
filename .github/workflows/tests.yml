@@ -28,7 +28,7 @@ jobs:
 
       - name: Syntax check
         run: |
-          for f in uninstall-legacy.sh hooks/*.sh scripts/*.sh tests/test-*.sh; do
+          for f in configure.sh uninstall-legacy.sh hooks/*.sh scripts/*.sh tests/test-*.sh; do
             bash -n "$f" && echo "ok  $f"
           done
 

@@ -80,6 +80,20 @@ only — no TTL, no version compare, no atomic writes, no opt-out flag", silentl
 re-downloading nine files from GitHub each start. At 1 star and same-day commits
 that is not something to wire into a global config. Re-evaluate if it matures.
 
+## What the plugin cannot ship
+
+Two gaps, both verified rather than assumed: a `permissions` block in a plugin's
+`settings.json` is ignored, and a plugin's `output-styles/` never registers. Tested
+through `--plugin-dir` and after a real marketplace install, on 2.1.235.
+
+`configure.sh` fills exactly those two and nothing else. Do not let it grow back
+into an installer: if it ever copies agents, skills or hooks into the config
+directory, those copies shadow the plugin, which is the bug that made 1.x rot. The
+suite asserts it creates no such directories.
+
+Retest both gaps on Claude Code upgrades; if either closes, delete that half of the
+script.
+
 ## Legacy
 
 Pre-2.0 installed via `curl | bash` into `~/.claude`. `uninstall-legacy.sh`
