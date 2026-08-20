@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
-# oh-my-claudecode status line — Ayu Dark, rounded powerline pills
+# oh-my-claudecode status line — Ayu Dark
 # Reads Claude Code JSON session data from stdin, outputs a styled 2-line status bar.
 #
-# Needs a Nerd Font for the rounded caps and the segment icons. Set
+# Needs a Nerd Font for the segment icons. Set
 # OMCC_STATUSLINE_ASCII=1 for a bracketed, icon-free fallback.
+#
+# Every glyph below is written as a \u escape rather than a literal character.
+# Literal private-use-area bytes do not survive every path this file travels
+# through, and when they are lost the icons become empty strings — the segments
+# still print, so nothing looks broken, the glyphs are simply gone.
 
 set -euo pipefail
 
@@ -11,39 +16,44 @@ ESC=$'\033'
 R="${ESC}[0m"
 
 # ---------------------------------------------------------------------------
-# Ayu Dark palette, as "R;G;B" so one table serves both fg and bg escapes.
+# Ayu Dark palette, as "R;G;B"
+#
+# Segments are plain coloured runs separated by spacing — no caps, no frames.
+# Only the context bar paints a background, because a progress bar has to.
 # ---------------------------------------------------------------------------
-RGB_PANEL='28;32;40'      # #1C2028  pill background
-RGB_INK='11;14;20'        # #0B0E14  text on a saturated pill
+RGB_INK='10;14;20'        # #0A0E14  terminal background — text on the filled bar
 RGB_MODEL='230;180;80'    # #E6B450
+RGB_DIR='191;189;182'     # #BFBDB6
+RGB_BRANCH='210;166;255'  # #D2A6FF
+RGB_AGENT='89;194;255'    # #59C2FF
 RGB_GREEN='170;217;76'    # #AAD94C
 RGB_ORANGE='255;143;64'   # #FF8F40
 RGB_RED='240;113;120'     # #F07178
-RGB_BRANCH='210;166;255'  # #D2A6FF
-RGB_AGENT='89;194;255'    # #59C2FF
-RGB_FG='191;189;182'      # #BFBDB6
-RGB_MUTED='86;91;102'     # #565B66
-RGB_TRACK='51;56;68'      # #333844  unfilled half of the bar
+RGB_PLAN='92;103;115'     # #5C6773
+RGB_TRACK='58;65;80'      # #3A4150  unfilled half of the bar
 
 # ---------------------------------------------------------------------------
 # Glyphs
 # ---------------------------------------------------------------------------
 if [[ "${OMCC_STATUSLINE_ASCII:-0}" == "1" ]]; then
-    CAP_L='['; CAP_R=']'
-    I_VIM=''; I_MODEL=''; I_DIR=''; I_BRANCH=''
+    I_MODEL=''; I_DIR=''; I_BRANCH=''
     I_AGENT=''; I_5H='5h '; I_7D='7d '; I_PLAN=''
 else
-    CAP_L=''; CAP_R=''
-    I_VIM=' '; I_MODEL=' '; I_DIR=' '; I_BRANCH=' '
-    I_AGENT=' '; I_5H=' '; I_7D=' '; I_PLAN=' '
+    I_MODEL=$' '   # bolt
+    I_DIR=$' '     # folder
+    I_BRANCH=$' '  # git branch
+    I_AGENT=$' '   # gears
+    I_5H=$' '      # clock
+    I_7D=$' '      # calendar
+    I_PLAN=$' '    # list
 fi
 
-# pill <bg-rgb> <fg-rgb> <text> — text supplies its own padding
-pill() {
-    printf '%s' \
-        "${ESC}[38;2;${1}m${CAP_L}${R}" \
-        "${ESC}[48;2;${1}m${ESC}[38;2;${2}m${3}${R}" \
-        "${ESC}[38;2;${1}m${CAP_R}${R}"
+# seg <rgb> <text> — one segment in a single colour, no padding of its own.
+# Segments are joined with $GAP below; a leading space here would indent the
+# whole line away from the footer beneath it.
+GAP='  '
+seg() {
+    printf '%s' "${ESC}[38;2;${1}m${2}${R}"
 }
 
 # ---------------------------------------------------------------------------
@@ -59,8 +69,10 @@ fi
 jqv() { jq -r "$1 // empty" <<< "$JSON" 2>/dev/null || true; }
 
 MODEL=$(jqv '.model.display_name'); MODEL=${MODEL:-unknown}
+# "Opus 5 (1M context)" -> "Opus 5 (1M)". The word adds nothing next to a size
+# and costs eight columns on the one line that is tightest.
+MODEL=${MODEL/ context)/)}
 AGENT_NAME=$(jqv '.agent.name')
-VIM_MODE=$(jqv '.vim.mode')
 
 # ---------------------------------------------------------------------------
 # Context percentage
@@ -116,29 +128,29 @@ DIR_MAX=16
 LEAF_MAX=10
 if [[ -n "$LEAF" ]]; then
     if (( ${#LEAF} > LEAF_MAX )); then
-        LEAF="${LEAF:0:$(( LEAF_MAX - 1 ))}…"
+        LEAF="${LEAF:0:$(( LEAF_MAX - 1 ))}"$'…'
     fi
     PROJ_MAX=$(( DIR_MAX - ${#LEAF} - 1 ))
     if (( PROJ_MAX < 4 )); then PROJ_MAX=4; fi
     if (( ${#PROJ} > PROJ_MAX )); then
-        PROJ="${PROJ:0:$(( PROJ_MAX - 1 ))}…"
+        PROJ="${PROJ:0:$(( PROJ_MAX - 1 ))}"$'…'
     fi
     DIR_STR="${PROJ}/${LEAF}"
 else
     DIR_STR="$PROJ"
     if (( ${#DIR_STR} > DIR_MAX )); then
-        DIR_STR="${DIR_STR:0:$(( DIR_MAX - 1 ))}…"
+        DIR_STR="${DIR_STR:0:$(( DIR_MAX - 1 ))}"$'…'
     fi
 fi
 
 BRANCH_MAX=$(( 28 - ${#DIR_STR} ))
 if (( BRANCH_MAX < 8 )); then BRANCH_MAX=8; fi
 if (( ${#BRANCH} > BRANCH_MAX )); then
-    BRANCH="${BRANCH:0:$(( BRANCH_MAX - 1 ))}…"
+    BRANCH="${BRANCH:0:$(( BRANCH_MAX - 1 ))}"$'…'
 fi
 
 # ---------------------------------------------------------------------------
-# Progress bar — a rounded pill with the reading centred inside it
+# Progress bar — a rounded capsule with the reading centred inside it
 # ---------------------------------------------------------------------------
 BAR_WIDTH=18
 
@@ -167,20 +179,20 @@ build_bar() {
 
     # Precomputed so the per-cell loop spawns nothing.
     local on="${ESC}[48;2;${color}m${ESC}[38;2;${RGB_INK}m"
-    local off="${ESC}[48;2;${RGB_TRACK}m${ESC}[38;2;${RGB_FG}m"
+    local off="${ESC}[48;2;${RGB_TRACK}m${ESC}[38;2;${RGB_DIR}m"
 
-    local lcap="$color" rcap="$RGB_TRACK"
-    if (( filled == 0 )); then lcap="$RGB_TRACK"; fi
-    if (( filled >= w )); then rcap="$color"; fi
-
-    local out="${ESC}[38;2;${lcap}m${CAP_L}${R}"
+    # No rounded caps here. On a filled bar the cap picks up whichever colour
+    # its end happens to be, so the capsule reads as part of the reading rather
+    # than as a frame around it — and at the fill boundary the two ends stop
+    # matching each other entirely. The block run is its own shape.
+    local out=""
     local i
     for (( i = 0; i < w; i++ )); do
         if (( i < filled )); then out+="${on}${text:i:1}"
         else                      out+="${off}${text:i:1}"
         fi
     done
-    out+="${R}${ESC}[38;2;${rcap}m${CAP_R}${R}"
+    out+="$R"
     printf '%s' "$out"
 }
 
@@ -231,8 +243,8 @@ limit_color() {
     fi
 }
 
-# icon, json key -> a finished pill, or nothing when the window is absent
-limit_pill() {
+# icon, json key -> a finished capsule, or nothing when the window is absent
+limit_seg() {
     local icon="$1" window="$2" raw pct at reset text
     raw=$(jqv ".rate_limits.${window}.used_percentage")
     [[ -n "$raw" ]] || return 0
@@ -243,53 +255,49 @@ limit_pill() {
     reset=$(fmt_reset "$at")
     [[ -n "$reset" ]] && text+=" ${reset}"
 
-    pill "$RGB_PANEL" "$(limit_color "$pct")" " ${text} "
+    seg "$(limit_color "$pct")" "$text"
 }
 
 # ---------------------------------------------------------------------------
-# Line 1 — vim mode, model, context, where you are
+# Line 1 — model, context, where you are
 # ---------------------------------------------------------------------------
-LINE1=""
-
-if [[ -n "$VIM_MODE" ]]; then
-    case "$VIM_MODE" in
-        NORMAL)  VIM_RGB="$RGB_GREEN"  ;;
-        INSERT)  VIM_RGB="$RGB_ORANGE" ;;
-        VISUAL*) VIM_RGB="$RGB_BRANCH" ;;
-        *)       VIM_RGB="$RGB_MUTED"  ;;
-    esac
-    LINE1+="$(pill "$VIM_RGB" "$RGB_INK" " ${I_VIM}${VIM_MODE} ") "
-fi
-
-LINE1+="$(pill "$RGB_PANEL" "$RGB_MODEL" " ${I_MODEL}${MODEL} ") "
-LINE1+="$(build_bar "$USED_PCT")"
+LINE1="$(seg "$RGB_MODEL" "${I_MODEL}${MODEL}")${GAP}"
 
 if [[ -n "$DIR_STR" ]]; then
-    LINE1+=" $(pill "$RGB_PANEL" "$RGB_FG" \
-        " ${I_DIR}${DIR_STR} ${ESC}[38;2;${RGB_BRANCH}m${I_BRANCH}${BRANCH} ")"
+    LINE1+="${ESC}[38;2;${RGB_DIR}m${I_DIR}${DIR_STR} "
+    LINE1+="${ESC}[38;2;${RGB_BRANCH}m${I_BRANCH}${BRANCH}${R}"
 else
-    LINE1+=" $(pill "$RGB_PANEL" "$RGB_BRANCH" " ${I_BRANCH}${BRANCH} ")"
+    LINE1+="$(seg "$RGB_BRANCH" "${I_BRANCH}${BRANCH}")"
 fi
+
+# The bar goes last: it is the only fixed-width segment, so trailing it keeps a
+# straight right edge instead of pushing the path around as the reading changes.
+LINE1+="${GAP}$(build_bar "$USED_PCT")"
 
 # ---------------------------------------------------------------------------
 # Line 2 — agent, quota, plan
 #
 # These sit below the fold because line 1 already spends its 80-column budget
-# on the model name, a full-width bar and the project path. Every part here is
+# on the model name, the project path and a full-width bar. Every part here is
 # optional, so line 2 is emitted only when something lands on it.
 # ---------------------------------------------------------------------------
 PARTS=()
-[[ -n "$AGENT_NAME" ]] && PARTS+=("$(pill "$RGB_PANEL" "$RGB_AGENT" " ${I_AGENT}${AGENT_NAME} ")")
+[[ -n "$AGENT_NAME" ]] && PARTS+=("$(seg "$RGB_AGENT" "${I_AGENT}${AGENT_NAME}")")
 
-L5=$(limit_pill "$I_5H" five_hour); [[ -n "$L5" ]] && PARTS+=("$L5")
-L7=$(limit_pill "$I_7D" seven_day); [[ -n "$L7" ]] && PARTS+=("$L7")
+L5=$(limit_seg "$I_5H" five_hour); [[ -n "$L5" ]] && PARTS+=("$L5")
+L7=$(limit_seg "$I_7D" seven_day); [[ -n "$L7" ]] && PARTS+=("$L7")
 
-[[ -n "$PLAN_STR" ]] && PARTS+=("$(pill "$RGB_PANEL" "$RGB_MUTED" " ${I_PLAN}${PLAN_STR} ")")
+[[ -n "$PLAN_STR" ]] && PARTS+=("$(seg "$RGB_PLAN" "${I_PLAN}${PLAN_STR}")")
 
 # ---------------------------------------------------------------------------
 # Output
 # ---------------------------------------------------------------------------
 printf '%s\n' "$LINE1"
 if (( ${#PARTS[@]} > 0 )); then
-    printf '%s\n' "${PARTS[*]}"
+    OLD_IFS=$IFS; IFS=''
+    printf '%s\n' "$( { local_first=1; for part in "${PARTS[@]}"; do
+        if (( local_first )); then printf '%s' "$part"; local_first=0
+        else printf '%s%s' "$GAP" "$part"; fi
+    done; } )"
+    IFS=$OLD_IFS
 fi

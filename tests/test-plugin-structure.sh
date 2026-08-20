@@ -181,13 +181,56 @@ check "installed status line renders" "
 # the two regressions that matter: a dropped segment, and a path truncated left
 # to right so the leaf — the only thing distinguishing two sessions in one repo
 # — disappears.
-SL_PAYLOAD='{"model":{"display_name":"M"},"vim":{"mode":"NORMAL"},"workspace":{"project_dir":"/a/oh-my-claudecode","current_dir":"/a/oh-my-claudecode/agents"},"context_window":{"context_window_size":1000,"current_usage":{"input_tokens":940}}}'
+SL_PAYLOAD='{"model":{"display_name":"M"},"workspace":{"project_dir":"/a/oh-my-claudecode","current_dir":"/a/oh-my-claudecode/agents"},"context_window":{"context_window_size":1000,"current_usage":{"input_tokens":940}}}'
 
-check "status line renders vim mode, project and branch" "
+check "status line renders model, project and reading" "
   out=\$(echo '$SL_PAYLOAD' | bash '$CFG/statusline.sh' | sed 's/\x1b\[[0-9;]*m//g') &&
-  grep -q NORMAL <<< \"\$out\" &&
   grep -q agents <<< \"\$out\" &&
   grep -q '94%' <<< \"\$out\""
+
+# A pill whose background sits near the terminal background renders its rounded
+# caps invisibly and reads as plain text. Every pill must therefore paint a
+# background, and none of them may be the near-black the old panel colour was.
+# Losing the Nerd Font glyphs is a silent failure: the caps become empty
+# strings, every segment still prints, and the bar just quietly has no capsule.
+# Assert the characters actually reach the output.
+#
+# Matched with bash globbing rather than grep: `grep` here may be ugrep, which
+# does not read \xNN as a raw byte the way GNU grep does, so a byte pattern
+# silently never matches and the assertion passes for the wrong reason.
+SL_CAP_L=$'\ue0b6'; SL_CAP_R=$'\ue0b4'
+SL_BOLT=$'\uf0e7';  SL_FOLDER=$'\uf07b'; SL_GIT=$'\ue0a0'
+
+# Segments are plain coloured runs. No powerline caps anywhere — not around the
+# text segments and not on the bar.
+check "status line draws no powerline caps" "
+  out=\$(echo '$SL_PAYLOAD' | bash '$CFG/statusline.sh') &&
+  [[ \"\$out\" != *'$SL_CAP_L'* ]] &&
+  [[ \"\$out\" != *'$SL_CAP_R'* ]]"
+
+# A leading space indents the bar away from the footer printed under it, and
+# the offset is then invisible in settings — alignment must come from
+# statusLine.padding alone, so the script itself emits none.
+check "status line emits no leading whitespace" "
+  out=\$(echo '$SL_PAYLOAD' | bash '$CFG/statusline.sh' | sed 's/\x1b\[[0-9;]*m//g') &&
+  ! grep -q '^ ' <<< \"\$out\""
+
+check "status line shortens the context size in the model name" "
+  out=\$(echo '{\"model\":{\"display_name\":\"Opus 5 (1M context)\"},\"context_window\":{\"context_window_size\":1000,\"current_usage\":{\"input_tokens\":100}}}' \
+        | bash '$CFG/statusline.sh' | sed 's/\x1b\[[0-9;]*m//g') &&
+  grep -q 'Opus 5 (1M)' <<< \"\$out\" &&
+  ! grep -q 'context)' <<< \"\$out\""
+
+check "status line emits its segment icons" "
+  out=\$(echo '$SL_PAYLOAD' | bash '$CFG/statusline.sh') &&
+  [[ \"\$out\" == *'$SL_BOLT'* ]] &&
+  [[ \"\$out\" == *'$SL_FOLDER'* ]] &&
+  [[ \"\$out\" == *'$SL_GIT'* ]]"
+
+check "status line has no vim segment" "
+  out=\$(echo '{\"model\":{\"display_name\":\"M\"},\"vim\":{\"mode\":\"NORMAL\"},\"context_window\":{\"context_window_size\":1000,\"current_usage\":{\"input_tokens\":100}}}' \
+        | bash '$CFG/statusline.sh' | sed 's/\x1b\[[0-9;]*m//g') &&
+  ! grep -q NORMAL <<< \"\$out\""
 
 check "status line keeps the cwd leaf when the path is truncated" "
   out=\$(echo '$SL_PAYLOAD' | bash '$CFG/statusline.sh' | sed 's/\x1b\[[0-9;]*m//g') &&
@@ -200,8 +243,10 @@ check "status line holds line 1 to 80 columns" "
 
 check "status line has an ASCII fallback" "
   out=\$(echo '$SL_PAYLOAD' | OMCC_STATUSLINE_ASCII=1 bash '$CFG/statusline.sh') &&
-  grep -q '\[' <<< \"\$out\" &&
-  ! grep -qP '\xee\x82\xb6' <<< \"\$out\""
+  [[ -n \"\$out\" ]] &&
+  [[ \"\$out\" != *'$SL_BOLT'* ]] &&
+  [[ \"\$out\" != *'$SL_FOLDER'* ]] &&
+  [[ \"\$out\" != *'$SL_GIT'* ]]"
 
 check "idempotent" "
   a=\$(md5sum < '$CFG/settings.json') &&

@@ -211,24 +211,29 @@ the parentheses — silently matches nothing.
 
 ## Status line
 
-Two lines of rounded powerline pills, installed by `configure.sh`:
+Two lines, installed by `configure.sh`:
 
 ```
-  NORMAL     Opus 5 (1M context)      38%        oh-my-claudecode   main
-  sisyphus     19% 1h13m     74% 2d4h
+ Opus 5 (1M)    oh-my-claudecode  main   ▓▓▓▓▓▓ 38% ░░░░░░░░
+ 19% 57m   74% 2d3h
 ```
 
-Line 1 is the vim mode, the model, an 18-cell context bar with the reading
-centred inside it, and where you are — project directory plus branch. Line 2
-carries the active subagent, the 5-hour and 7-day rate-limit windows with their
-reset countdowns, and the current plan when `.sisyphus/plans/` has one. Every
-part of line 2 is optional, so it is omitted entirely when there is nothing to
-show.
+Line 1 is the model, where you are — project directory plus branch — and an
+18-cell context bar with the reading centred inside it. Line 2 carries the
+active subagent, the 5-hour and 7-day rate-limit windows with their reset
+countdowns, and the current plan when `.sisyphus/plans/` has one. Every part of
+line 2 is optional, so it is omitted entirely when there is nothing to show.
 
-The vim pill appears only when vim mode is on, and is coloured by mode: green
-for NORMAL, orange for INSERT, purple for VISUAL. Colour elsewhere is shared
-across the context bar and both quota readings: green below 70%, orange 70-89%,
-red at 90% and above.
+Segments are plain coloured runs — no powerline caps, no frames. Only the bar
+paints a background, because a progress bar has to. Colour is shared across the
+bar and both quota readings: green below 70%, orange 70-89%, red at 90% and
+above.
+
+The bar goes last because it is the only fixed-width segment; trailing it keeps
+a straight right edge instead of pushing the path around as the reading changes.
+
+The model name is shortened from `Opus 5 (1M context)` to `Opus 5 (1M)`. The
+word adds nothing beside a size and costs eight columns on the tightest line.
 
 The directory is what tells two concurrent sessions apart. When the cwd sits
 below the project root the leaf is appended (`oh-my-cl…/agents`) and kept whole
@@ -236,15 +241,22 @@ under truncation — the project name is shortened around it, because truncating
 left to right would drop the leaf and leave two sessions in one repo looking
 identical.
 
+The script emits no leading whitespace, so the bar lines up with the footer
+beneath it via `statusLine.padding` in your settings and nothing else. Raise it
+to indent, lower it to sit flush.
+
 The layout is budgeted to 80 columns in the worst case, which is why the path
 gets 16 columns and the branch takes what is left of 28. The statusline payload
 does not carry terminal width, so that is a fixed budget rather than an adaptive
 one. Raise `DIR_MAX`, `BRANCH_MAX` or `BAR_WIDTH` in `scripts/statusline.sh` if
 you run wider.
 
-The rounded caps and the segment icons need a Nerd Font. Without one, set
-`OMCC_STATUSLINE_ASCII=1` for a bracketed, icon-free rendering of the same
-information.
+The segment icons need a Nerd Font. Without one, set `OMCC_STATUSLINE_ASCII=1`
+for an icon-free rendering of the same information. Every glyph in the script is
+written as a `\u` escape rather than a literal character: literal private-use-area
+bytes do not survive every path the file travels through, and when they are lost
+the icons become empty strings — the segments still print, so nothing looks
+broken, the glyphs are simply gone.
 
 `rate_limits` is only present for Claude.ai Pro/Max accounts, and only after the
 first API response of a session. Each window can be absent independently; the
