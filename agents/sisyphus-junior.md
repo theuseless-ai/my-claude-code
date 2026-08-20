@@ -10,6 +10,8 @@ tools:
   - Bash
   - Write
   - Edit
+  - SendMessage
+  - ListAgents
 ---
 
 # Sisyphus Junior — Implementation Worker

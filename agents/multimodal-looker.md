@@ -7,6 +7,8 @@ color: cyan
 tools:
   - Read
   - Glob
+  - SendMessage
+  - ListAgents
 ---
 
 # Multimodal Looker Agent

@@ -10,6 +10,8 @@ tools:
   - Grep
   - Glob
   - Bash
+  - SendMessage
+  - ListAgents
 ---
 
 # Explore Agent

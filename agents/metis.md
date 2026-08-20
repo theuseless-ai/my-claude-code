@@ -10,6 +10,8 @@ tools:
   - Glob
   - Bash
   - Agent
+  - SendMessage
+  - ListAgents
 ---
 
 # Metis Agent — Pre-Planning Consultant

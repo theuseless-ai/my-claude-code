@@ -11,6 +11,8 @@ tools:
   - Bash
   - WebFetch
   - WebSearch
+  - SendMessage
+  - ListAgents
 ---
 
 # Librarian Agent

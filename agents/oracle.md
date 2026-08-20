@@ -11,6 +11,8 @@ tools:
   - Glob
   - Bash
   - Agent
+  - SendMessage
+  - ListAgents
 ---
 
 # Oracle Agent

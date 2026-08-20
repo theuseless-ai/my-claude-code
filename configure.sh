@@ -92,9 +92,10 @@ jq empty "$SETTINGS" 2>/dev/null || { error "$SETTINGS is not valid JSON — fix
 # nothing else to change.
 if [[ $REVERT -eq 0 ]] && [[ "$(jq -r '.env.CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS // empty' "$SETTINGS")" == "1" ]]; then
     warn "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS is 1 in your settings."
-    warn "With teams on, a named subagent launches as a teammate and returns only an"
-    warn "idle notification — never its report. That breaks this roster's orchestration."
-    warn "Set it to \"0\" unless you specifically want teams."
+    warn "With teams on, a named subagent launches as a teammate and its report does not"
+    warn "return to the caller as a tool result. This roster orchestrates by subagent"
+    warn "dispatch, so set it to \"0\" unless you specifically want teams. Every agent"
+    warn "carries SendMessage/ListAgents either way, so agents can still message each other."
 fi
 
 STATUSLINE_SRC="$SCRIPT_DIR/scripts/statusline.sh"

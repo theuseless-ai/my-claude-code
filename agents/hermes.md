@@ -13,6 +13,8 @@ tools:
   - Grep
   - Glob
   - Agent
+  - SendMessage
+  - ListAgents
 ---
 
 [identity]

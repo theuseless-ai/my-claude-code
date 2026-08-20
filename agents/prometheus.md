@@ -12,6 +12,8 @@ tools:
   - Write
   - Edit
   - Agent
+  - SendMessage
+  - ListAgents
 ---
 
 # Prometheus — Strategic Planner

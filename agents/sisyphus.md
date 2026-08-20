@@ -11,6 +11,8 @@ tools:
   - Write
   - Edit
   - Agent
+  - SendMessage
+  - ListAgents
 ---
 
 ```json

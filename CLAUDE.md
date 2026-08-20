@@ -32,11 +32,14 @@ scripts/pm.sh                    # project-board CLI used by the gh-* skills
 - **Reference bundled files with `${CLAUDE_PLUGIN_ROOT}`**, never `$HOME/.claude`.
   It is substituted in skill bodies and hook commands, but *not* in agent bodies —
   have the agent defer to a skill instead.
-- **Do not reintroduce agent teams.** Teammates return an idle notification rather
-  than their output, so every consultative agent in this roster loses its result.
-  Teammates cannot spawn teammates and only the main session can lead, so atlas —
-  a subagent — can never be a lead. Parallelism here means several Agent calls in
-  one message, plus `isolation: worktree` when workers write concurrently.
+- **Do not reintroduce agent teams.** A teammate's report does not return to the
+  caller as a tool result, so every consultative agent in this roster loses its
+  result. Teammates cannot spawn teammates and only the main session can lead, so
+  atlas — a subagent — can never be a lead. Parallelism here means several Agent
+  calls in one message, plus `isolation: worktree` when workers write concurrently.
+- **Every agent's `tools:` list includes `SendMessage` and `ListAgents`.** An
+  explicit `tools:` list is an allowlist, so omitting them leaves an agent unable to
+  report to `main` or see its peers. Keep them on any agent added to the roster.
 - **Hooks emit `hookSpecificOutput`**, not the legacy `{"decision": "block"}`.
 - **A plugin's `output-styles/` does not register.** Verified on 2.1.235: an
   installed, enabled plugin's style never reaches the system prompt, even with

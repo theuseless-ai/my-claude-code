@@ -171,9 +171,13 @@ Sisyphus (intent classification)
 
 Parallel work is done with **subagent dispatch**, not agent teams: several Agent
 calls in one message, plus `isolation: worktree` when workers write files
-concurrently. Teams are deliberately not used — a teammate reports only an idle
-notification, never its output, which would silently break every agent in this
+concurrently. Teams are deliberately not used — a teammate's report does not come
+back to the caller as a tool result, which would silently break every agent in this
 roster whose value is the report it returns.
+
+Every agent nonetheless carries `SendMessage` and `ListAgents`, so any agent can
+report to `main` mid-run, discover sibling agents and other Claude Code sessions,
+and message them by name.
 
 ## Skills
 

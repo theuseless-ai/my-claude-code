@@ -14,6 +14,8 @@ tools:
   - Glob
   - Grep
   - Agent
+  - SendMessage
+  - ListAgents
 ---
 
 # Argus — The All-Seeing PR Guardian

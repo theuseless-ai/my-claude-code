@@ -9,6 +9,8 @@ tools:
   - Grep
   - Glob
   - Bash
+  - SendMessage
+  - ListAgents
 ---
 
 # Momus — Plan Reviewer

@@ -98,13 +98,19 @@ calls in a single message and read each result as it returns.
 | Single complex task | Direct hephaestus delegation |
 | Simple scoped task | Direct sisyphus-junior delegation |
 
-**Why not agent teams.** Teams are experimental and off by default here
-(`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: "0"`). With teams on, a subagent that gets a
-name launches as a teammate instead, and a teammate reports only an idle notification —
-its output never comes back to the caller. That silently breaks every consultative agent
-in this roster, whose whole value is the report it returns. Teammates also cannot spawn
-teammates, and only the main session can lead a team, so atlas — itself a subagent —
-can never be a lead.
+**Why not agent teams.** Teams are experimental and gated behind
+`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` — check your own setting rather than assuming a
+default. With teams on, a subagent that gets a name launches as a teammate instead, and
+a teammate's report does not return to the caller as a tool result. Teammates also
+cannot spawn teammates, and only the main session can lead a team, so atlas — itself a
+subagent — can never be a lead.
+
+**Messaging is always available.** Every agent in this roster carries `SendMessage` and
+`ListAgents`, independent of the teams setting. A subagent reports back with
+`SendMessage({to: "main", ...})`; `ListAgents` discovers sibling subagents and other
+Claude Code sessions, and the name it prints is the address. Reach for it when an agent
+must hand something back mid-run instead of only in its final report — an agent's plain
+text is not visible to any other agent.
 
 If you want a team, you drive it yourself from the main session; the agent definitions
 in `agents/` are reusable as teammate types. Note that `skills:` and
