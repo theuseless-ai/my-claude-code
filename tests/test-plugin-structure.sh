@@ -176,6 +176,33 @@ check "installed status line renders" "
         | bash '$CFG/statusline.sh') &&
   [[ -n \"\$out\" ]]"
 
+# The fields the bar reads must actually reach the output. A payload that
+# exercises vim mode, a cwd below the project root and a saturated bar catches
+# the two regressions that matter: a dropped segment, and a path truncated left
+# to right so the leaf — the only thing distinguishing two sessions in one repo
+# — disappears.
+SL_PAYLOAD='{"model":{"display_name":"M"},"vim":{"mode":"NORMAL"},"workspace":{"project_dir":"/a/oh-my-claudecode","current_dir":"/a/oh-my-claudecode/agents"},"context_window":{"context_window_size":1000,"current_usage":{"input_tokens":940}}}'
+
+check "status line renders vim mode, project and branch" "
+  out=\$(echo '$SL_PAYLOAD' | bash '$CFG/statusline.sh' | sed 's/\x1b\[[0-9;]*m//g') &&
+  grep -q NORMAL <<< \"\$out\" &&
+  grep -q agents <<< \"\$out\" &&
+  grep -q '94%' <<< \"\$out\""
+
+check "status line keeps the cwd leaf when the path is truncated" "
+  out=\$(echo '$SL_PAYLOAD' | bash '$CFG/statusline.sh' | sed 's/\x1b\[[0-9;]*m//g') &&
+  grep -q '/agents' <<< \"\$out\""
+
+check "status line holds line 1 to 80 columns" "
+  w=\$(echo '$SL_PAYLOAD' | bash '$CFG/statusline.sh' | head -1 \
+        | sed 's/\x1b\[[0-9;]*m//g' | wc -L) &&
+  (( w <= 80 ))"
+
+check "status line has an ASCII fallback" "
+  out=\$(echo '$SL_PAYLOAD' | OMCC_STATUSLINE_ASCII=1 bash '$CFG/statusline.sh') &&
+  grep -q '\[' <<< \"\$out\" &&
+  ! grep -qP '\xee\x82\xb6' <<< \"\$out\""
+
 check "idempotent" "
   a=\$(md5sum < '$CFG/settings.json') &&
   ./configure.sh --yes --target '$CFG' > /dev/null &&

@@ -211,26 +211,40 @@ the parentheses — silently matches nothing.
 
 ## Status line
 
-Two lines, installed by `configure.sh`:
+Two lines of rounded powerline pills, installed by `configure.sh`:
 
 ```
-Opus 5 (1M) │ ▓▓▓▓░░░░░░░░░░░░░░░░ 20% │ my-branch
-5h 19% (1h13m) · 7d 9% (6d0h)
+  NORMAL     Opus 5 (1M context)      38%        oh-my-claudecode   main
+  sisyphus     19% 1h13m     74% 2d4h
 ```
 
-Line 1 is model, a 20-cell context bar, the branch, and the active subagent when
-one is running. Line 2 carries the 5-hour and 7-day rate-limit windows with their
-reset countdowns, plus the current plan when `.sisyphus/plans/` has one. Both parts
-of line 2 are optional, so it is omitted entirely when there is nothing to show.
+Line 1 is the vim mode, the model, an 18-cell context bar with the reading
+centred inside it, and where you are — project directory plus branch. Line 2
+carries the active subagent, the 5-hour and 7-day rate-limit windows with their
+reset countdowns, and the current plan when `.sisyphus/plans/` has one. Every
+part of line 2 is optional, so it is omitted entirely when there is nothing to
+show.
 
-Colour is shared across the bar and both quota readings: green below 70%, orange
-70-89%, red at 90% and above.
+The vim pill appears only when vim mode is on, and is coloured by mode: green
+for NORMAL, orange for INSERT, purple for VISUAL. Colour elsewhere is shared
+across the context bar and both quota readings: green below 70%, orange 70-89%,
+red at 90% and above.
 
-The layout is budgeted to 80 columns in the worst case — 100% context with the
-longest agent name in the agent slot — which is why branch names are capped at 18
-characters. The statusline payload does not carry terminal width, so that is a
-fixed budget rather than an adaptive one. Raise `BRANCH_MAX` in
-`scripts/statusline.sh` if you run wider and want full branch names.
+The directory is what tells two concurrent sessions apart. When the cwd sits
+below the project root the leaf is appended (`oh-my-cl…/agents`) and kept whole
+under truncation — the project name is shortened around it, because truncating
+left to right would drop the leaf and leave two sessions in one repo looking
+identical.
+
+The layout is budgeted to 80 columns in the worst case, which is why the path
+gets 16 columns and the branch takes what is left of 28. The statusline payload
+does not carry terminal width, so that is a fixed budget rather than an adaptive
+one. Raise `DIR_MAX`, `BRANCH_MAX` or `BAR_WIDTH` in `scripts/statusline.sh` if
+you run wider.
+
+The rounded caps and the segment icons need a Nerd Font. Without one, set
+`OMCC_STATUSLINE_ASCII=1` for a bracketed, icon-free rendering of the same
+information.
 
 `rate_limits` is only present for Claude.ai Pro/Max accounts, and only after the
 first API response of a session. Each window can be absent independently; the
