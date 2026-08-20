@@ -248,6 +248,18 @@ check "status line has an ASCII fallback" "
   [[ \"\$out\" != *'$SL_FOLDER'* ]] &&
   [[ \"\$out\" != *'$SL_GIT'* ]]"
 
+# The script emits no leading whitespace, so padding is the only thing aligning
+# the bar with the footer under it.
+check "wires the status line with padding 2" "
+  [[ \$(jq -r '.statusLine.padding' '$CFG/settings.json') == 2 ]]"
+
+# Padding is a user preference; re-running must not reset it.
+CFG7="$SB/cfg7"; mkdir -p "$CFG7"
+printf '%s' '{"statusLine":{"type":"command","command":"'"$CFG7"'/statusline.sh","padding":4}}' > "$CFG7/settings.json"
+check "keeps a padding the user already chose" "
+  ./configure.sh --yes --target '$CFG7' > /dev/null 2>&1 &&
+  [[ \$(jq -r '.statusLine.padding' '$CFG7/settings.json') == 4 ]]"
+
 check "idempotent" "
   a=\$(md5sum < '$CFG/settings.json') &&
   ./configure.sh --yes --target '$CFG' > /dev/null &&

@@ -101,6 +101,11 @@ fi
 STATUSLINE_SRC="$SCRIPT_DIR/scripts/statusline.sh"
 STATUSLINE_DST="$TARGET_DIR/statusline.sh"
 
+# padding defaults to 2 so the bar lines up with the footer beneath it: the
+# script emits no leading whitespace of its own, so this is the only thing
+# positioning it. An existing padding is kept — it is a user preference, and
+# re-running this script must not silently undo it.
+
 # Never take over a status line the user already points somewhere else.
 EXISTING_SL=$(jq -r '.statusLine.command // empty' "$SETTINGS")
 SL_IS_FOREIGN=0
@@ -128,7 +133,8 @@ else
         .permissions.allow = ((.permissions.allow // []) + $ours.allow | unique) |
         .permissions.deny  = ((.permissions.deny  // []) + $ours.deny  | unique) |
         if $wire == 1
-        then .statusLine = { type: "command", command: $sl, padding: 1 }
+        then .statusLine = { type: "command", command: $sl,
+                             padding: (.statusLine.padding // 2) }
         else . end
     ' "$SETTINGS")
 fi

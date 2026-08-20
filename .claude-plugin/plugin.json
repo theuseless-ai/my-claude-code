@@ -1,7 +1,7 @@
 {
   "name": "oh-my-claudecode",
   "description": "Multi-agent orchestration for Claude Code: a roster of 13 specialist agents behind an intent-classification gate, plus a plan/review/execute pipeline.",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "author": {
     "name": "Tachikoma"
   },
