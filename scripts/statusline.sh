@@ -263,16 +263,17 @@ limit_seg() {
 # ---------------------------------------------------------------------------
 LINE1="$(seg "$RGB_MODEL" "${I_MODEL}${MODEL}")${GAP}"
 
+# The bar sits second, right behind the model. It is fixed-width, so everything
+# ahead of it is fixed-width too and the reading lands in the same column every
+# frame — the path is what absorbs the variation, out at the ragged end.
+LINE1+="$(build_bar "$USED_PCT")${GAP}"
+
 if [[ -n "$DIR_STR" ]]; then
     LINE1+="${ESC}[38;2;${RGB_DIR}m${I_DIR}${DIR_STR} "
     LINE1+="${ESC}[38;2;${RGB_BRANCH}m${I_BRANCH}${BRANCH}${R}"
 else
     LINE1+="$(seg "$RGB_BRANCH" "${I_BRANCH}${BRANCH}")"
 fi
-
-# The bar goes last: it is the only fixed-width segment, so trailing it keeps a
-# straight right edge instead of pushing the path around as the reading changes.
-LINE1+="${GAP}$(build_bar "$USED_PCT")"
 
 # ---------------------------------------------------------------------------
 # Line 2 — agent, quota, plan

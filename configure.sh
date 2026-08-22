@@ -101,10 +101,12 @@ fi
 STATUSLINE_SRC="$SCRIPT_DIR/scripts/statusline.sh"
 STATUSLINE_DST="$TARGET_DIR/statusline.sh"
 
-# padding defaults to 2 so the bar lines up with the footer beneath it: the
-# script emits no leading whitespace of its own, so this is the only thing
-# positioning it. An existing padding is kept — it is a user preference, and
-# re-running this script must not silently undo it.
+# padding defaults to 0 so the bar sits flush left. The script emits no leading
+# whitespace of its own, so this is the only thing positioning it, and anything
+# above 0 indents the two status lines away from the footer beneath them.
+# An existing padding is kept — it is a user preference, and re-running this
+# script must not silently undo it. jq treats 0 as truthy, so a deliberate 0
+# survives `//` just as any other value does.
 
 # Never take over a status line the user already points somewhere else.
 EXISTING_SL=$(jq -r '.statusLine.command // empty' "$SETTINGS")
@@ -134,7 +136,7 @@ else
         .permissions.deny  = ((.permissions.deny  // []) + $ours.deny  | unique) |
         if $wire == 1
         then .statusLine = { type: "command", command: $sl,
-                             padding: (.statusLine.padding // 2) }
+                             padding: (.statusLine.padding // 0) }
         else . end
     ' "$SETTINGS")
 fi

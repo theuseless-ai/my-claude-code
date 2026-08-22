@@ -214,12 +214,12 @@ the parentheses — silently matches nothing.
 Two lines, installed by `configure.sh`:
 
 ```
- Opus 5 (1M)    oh-my-claudecode  main   ▓▓▓▓▓▓ 38% ░░░░░░░░
+ Opus 5 (1M)  ▓▓▓▓▓▓ 38% ░░░░░░░░   oh-my-claudecode  main
  19% 57m   74% 2d3h
 ```
 
-Line 1 is the model, where you are — project directory plus branch — and an
-18-cell context bar with the reading centred inside it. Line 2 carries the
+Line 1 is the model, an 18-cell context bar with the reading centred inside it,
+and where you are — project directory plus branch. Line 2 carries the
 active subagent, the 5-hour and 7-day rate-limit windows with their reset
 countdowns, and the current plan when `.sisyphus/plans/` has one. Every part of
 line 2 is optional, so it is omitted entirely when there is nothing to show.
@@ -229,8 +229,9 @@ paints a background, because a progress bar has to. Colour is shared across the
 bar and both quota readings: green below 70%, orange 70-89%, red at 90% and
 above.
 
-The bar goes last because it is the only fixed-width segment; trailing it keeps
-a straight right edge instead of pushing the path around as the reading changes.
+The bar sits second, behind the model. Both are fixed-width, so the reading
+lands in the same column every frame; the path trails and absorbs the variation
+at the ragged end, where it costs nothing to read.
 
 The model name is shortened from `Opus 5 (1M context)` to `Opus 5 (1M)`. The
 word adds nothing beside a size and costs eight columns on the tightest line.
@@ -241,9 +242,9 @@ under truncation — the project name is shortened around it, because truncating
 left to right would drop the leaf and leave two sessions in one repo looking
 identical.
 
-The script emits no leading whitespace, so the bar lines up with the footer
-beneath it via `statusLine.padding` in your settings and nothing else. Raise it
-to indent, lower it to sit flush.
+The script emits no leading whitespace, so `statusLine.padding` in your settings
+is the only thing that positions it. It is wired to `0`, which sits flush left;
+raise it to indent. A padding you have already chosen is never overwritten.
 
 The layout is budgeted to 80 columns in the worst case, which is why the path
 gets 16 columns and the branch takes what is left of 28. The statusline payload
