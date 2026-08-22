@@ -214,24 +214,21 @@ the parentheses — silently matches nothing.
 Two lines, installed by `configure.sh`:
 
 ```
- Opus 5 (1M)  ▓▓▓▓▓▓ 38% ░░░░░░░░   oh-my-claudecode  main
- 19% 57m   74% 2d3h
+[oh-my-claudecode]:main · Opus 5 / high
+ctx ━━━━━━━━━───────── 47% · 5h ━━────── 32% 4h36m · 7d ────── 18% 3d10h
 ```
 
-Line 1 is the model, an 18-cell context bar with the reading centred inside it,
-and where you are — project directory plus branch. Line 2 carries the
-active subagent, the 5-hour and 7-day rate-limit windows with their reset
-countdowns, and the current plan when `.sisyphus/plans/` has one. Every part of
-line 2 is optional, so it is omitted entirely when there is nothing to show.
+Line 1 is where you are and what's running it: project directory, branch,
+model, and the current effort level when the session has one. Line 2 is
+three labelled bars — context usage, then the 5-hour and 7-day rate-limit
+windows with their reset countdowns. `ctx` always shows; the quota segments
+are each dropped independently when their window isn't in the payload, and
+line 2 itself is omitted entirely when there's nothing to show.
 
-Segments are plain coloured runs — no powerline caps, no frames. Only the bar
-paints a background, because a progress bar has to. Colour is shared across the
-bar and both quota readings: green below 70%, orange 70-89%, red at 90% and
-above.
-
-The bar sits second, behind the model. Both are fixed-width, so the reading
-lands in the same column every frame; the path trails and absorbs the variation
-at the ragged end, where it costs nothing to read.
+Bars are drawn with two box-drawing characters — `━` filled, `─` empty — no
+background paint, no powerline caps, no frames. Colour is shared across every
+bar and every reading: green below 70%, orange 70-89%, red at 90% and above.
+Labels (`ctx`, `5h`, `7d`) and the `·` separators sit in a dim neutral grey.
 
 The model name is shortened from `Opus 5 (1M context)` to `Opus 5 (1M)`. The
 word adds nothing beside a size and costs eight columns on the tightest line.
@@ -246,18 +243,16 @@ The script emits no leading whitespace, so `statusLine.padding` in your settings
 is the only thing that positions it. It is wired to `0`, which sits flush left;
 raise it to indent. A padding you have already chosen is never overwritten.
 
-The layout is budgeted to 80 columns in the worst case, which is why the path
-gets 16 columns and the branch takes what is left of 28. The statusline payload
-does not carry terminal width, so that is a fixed budget rather than an adaptive
-one. Raise `DIR_MAX`, `BRANCH_MAX` or `BAR_WIDTH` in `scripts/statusline.sh` if
-you run wider.
+Both lines are hard-capped at 80 printable columns, since the payload carries
+no terminal width. Line 1 spends most of that on the project path (16 columns)
+and the branch (up to what's left of 28); line 2's three bars are fixed at 18
+cells for context and 8 cells each for the two quota windows — sized so that
+the worst case (three 100% readings with the widest reset countdowns each
+window can produce) still fits. Raise `DIR_MAX` or the bar widths in
+`scripts/statusline.sh` if you run wider.
 
-The segment icons need a Nerd Font. Without one, set `OMCC_STATUSLINE_ASCII=1`
-for an icon-free rendering of the same information. Every glyph in the script is
-written as a `\u` escape rather than a literal character: literal private-use-area
-bytes do not survive every path the file travels through, and when they are lost
-the icons become empty strings — the segments still print, so nothing looks
-broken, the glyphs are simply gone.
+The script is pure ASCII plus the two box-drawing characters above — no Nerd
+Font, no glyph fallback to configure.
 
 `rate_limits` is only present for Claude.ai Pro/Max accounts, and only after the
 first API response of a session. Each window can be absent independently; the

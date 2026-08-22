@@ -191,15 +191,11 @@ check "status line renders model, project and reading" "
 # A pill whose background sits near the terminal background renders its rounded
 # caps invisibly and reads as plain text. Every pill must therefore paint a
 # background, and none of them may be the near-black the old panel colour was.
-# Losing the Nerd Font glyphs is a silent failure: the caps become empty
-# strings, every segment still prints, and the bar just quietly has no capsule.
-# Assert the characters actually reach the output.
 #
 # Matched with bash globbing rather than grep: `grep` here may be ugrep, which
 # does not read \xNN as a raw byte the way GNU grep does, so a byte pattern
 # silently never matches and the assertion passes for the wrong reason.
 SL_CAP_L=$'\ue0b6'; SL_CAP_R=$'\ue0b4'
-SL_BOLT=$'\uf0e7';  SL_FOLDER=$'\uf07b'; SL_GIT=$'\ue0a0'
 
 # Segments are plain coloured runs. No powerline caps anywhere — not around the
 # text segments and not on the bar.
@@ -221,11 +217,13 @@ check "status line shortens the context size in the model name" "
   grep -q 'Opus 5 (1M)' <<< \"\$out\" &&
   ! grep -q 'context)' <<< \"\$out\""
 
-check "status line emits its segment icons" "
-  out=\$(echo '$SL_PAYLOAD' | bash '$CFG/statusline.sh') &&
-  [[ \"\$out\" == *'$SL_BOLT'* ]] &&
-  [[ \"\$out\" == *'$SL_FOLDER'* ]] &&
-  [[ \"\$out\" == *'$SL_GIT'* ]]"
+# Bars are drawn with box-drawing characters, no Nerd Font glyphs. Assert the
+# ctx label and the filled/empty bar characters actually reach the output.
+check "status line draws the ctx bar with box-drawing characters" "
+  out=\$(echo '$SL_PAYLOAD' | bash '$CFG/statusline.sh' | sed 's/\x1b\[[0-9;]*m//g') &&
+  grep -q 'ctx ' <<< \"\$out\" &&
+  [[ \"\$out\" == *'━'* ]] &&
+  [[ \"\$out\" == *'─'* ]]"
 
 check "status line has no vim segment" "
   out=\$(echo '{\"model\":{\"display_name\":\"M\"},\"vim\":{\"mode\":\"NORMAL\"},\"context_window\":{\"context_window_size\":1000,\"current_usage\":{\"input_tokens\":100}}}' \
@@ -237,16 +235,22 @@ check "status line keeps the cwd leaf when the path is truncated" "
   grep -q '/agents' <<< \"\$out\""
 
 check "status line holds line 1 to 80 columns" "
-  w=\$(echo '$SL_PAYLOAD' | bash '$CFG/statusline.sh' | head -1 \
-        | sed 's/\x1b\[[0-9;]*m//g' | wc -L) &&
+  out=\$(echo '$SL_PAYLOAD' | bash '$CFG/statusline.sh') &&
+  w=\$(head -1 <<< \"\$out\" | sed 's/\x1b\[[0-9;]*m//g' | wc -L) &&
   (( w <= 80 ))"
 
-check "status line has an ASCII fallback" "
-  out=\$(echo '$SL_PAYLOAD' | OMCC_STATUSLINE_ASCII=1 bash '$CFG/statusline.sh') &&
-  [[ -n \"\$out\" ]] &&
-  [[ \"\$out\" != *'$SL_BOLT'* ]] &&
-  [[ \"\$out\" != *'$SL_FOLDER'* ]] &&
-  [[ \"\$out\" != *'$SL_GIT'* ]]"
+# A worst-case rate-limit payload: two full quota bars, each reset near the
+# top of its window's range (5h -> just under "5h", 7d -> just under "7d",
+# the widest countdown strings each window actually produces) — the tightest
+# line 2 gets.
+SL_RESET_5H=$(( $(date +%s) + 4 * 3600 + 59 * 60 ))
+SL_RESET_7D=$(( $(date +%s) + 6 * 86400 + 23 * 3600 ))
+SL_PAYLOAD_QUOTA="{\"model\":{\"display_name\":\"M\"},\"context_window\":{\"context_window_size\":1000,\"current_usage\":{\"input_tokens\":1000}},\"rate_limits\":{\"five_hour\":{\"used_percentage\":100,\"resets_at\":$SL_RESET_5H},\"seven_day\":{\"used_percentage\":100,\"resets_at\":$SL_RESET_7D}}}"
+
+check "status line holds line 2 to 80 columns" "
+  out=\$(echo '$SL_PAYLOAD_QUOTA' | bash '$CFG/statusline.sh') &&
+  w=\$(sed -n 2p <<< \"\$out\" | sed 's/\x1b\[[0-9;]*m//g' | wc -L) &&
+  (( w <= 80 ))"
 
 # The script emits no leading whitespace, so padding is the only thing that can
 # indent it. 0 keeps it flush with the footer under it.

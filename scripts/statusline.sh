@@ -2,13 +2,8 @@
 # oh-my-claudecode status line — Ayu Dark
 # Reads Claude Code JSON session data from stdin, outputs a styled 2-line status bar.
 #
-# Needs a Nerd Font for the segment icons. Set
-# OMCC_STATUSLINE_ASCII=1 for a bracketed, icon-free fallback.
-#
-# Every glyph below is written as a \u escape rather than a literal character.
-# Literal private-use-area bytes do not survive every path this file travels
-# through, and when they are lost the icons become empty strings — the segments
-# still print, so nothing looks broken, the glyphs are simply gone.
+# Pure ASCII labels plus two box-drawing characters (━ U+2501, ─ U+2500) — no
+# Nerd Font dependency, no PUA glyphs, no fallback code path.
 
 set -euo pipefail
 
@@ -18,40 +13,22 @@ R="${ESC}[0m"
 # ---------------------------------------------------------------------------
 # Ayu Dark palette, as "R;G;B"
 #
-# Segments are plain coloured runs separated by spacing — no caps, no frames.
-# Only the context bar paints a background, because a progress bar has to.
+# Segments are plain coloured runs separated by spacing — no caps, no frames,
+# no background paint anywhere, including the bars.
 # ---------------------------------------------------------------------------
-RGB_INK='10;14;20'        # #0A0E14  terminal background — text on the filled bar
 RGB_MODEL='230;180;80'    # #E6B450
 RGB_DIR='191;189;182'     # #BFBDB6
 RGB_BRANCH='210;166;255'  # #D2A6FF
-RGB_AGENT='89;194;255'    # #59C2FF
 RGB_GREEN='170;217;76'    # #AAD94C
 RGB_ORANGE='255;143;64'   # #FF8F40
 RGB_RED='240;113;120'     # #F07178
-RGB_PLAN='92;103;115'     # #5C6773
-RGB_TRACK='58;65;80'      # #3A4150  unfilled half of the bar
-
-# ---------------------------------------------------------------------------
-# Glyphs
-# ---------------------------------------------------------------------------
-if [[ "${OMCC_STATUSLINE_ASCII:-0}" == "1" ]]; then
-    I_MODEL=''; I_DIR=''; I_BRANCH=''
-    I_AGENT=''; I_5H='5h '; I_7D='7d '; I_PLAN=''
-else
-    I_MODEL=$' '   # bolt
-    I_DIR=$' '     # folder
-    I_BRANCH=$' '  # git branch
-    I_AGENT=$' '   # gears
-    I_5H=$' '      # clock
-    I_7D=$' '      # calendar
-    I_PLAN=$' '    # list
-fi
+RGB_PLAN='92;103;115'     # #5C6773  labels, separators, effort
+RGB_TRACK='58;65;80'      # #3A4150  unfilled cell of a bar
 
 # seg <rgb> <text> — one segment in a single colour, no padding of its own.
 # Segments are joined with $GAP below; a leading space here would indent the
 # whole line away from the footer beneath it.
-GAP='  '
+GAP=' · '
 seg() {
     printf '%s' "${ESC}[38;2;${1}m${2}${R}"
 }
@@ -72,7 +49,7 @@ MODEL=$(jqv '.model.display_name'); MODEL=${MODEL:-unknown}
 # "Opus 5 (1M context)" -> "Opus 5 (1M)". The word adds nothing next to a size
 # and costs eight columns on the one line that is tightest.
 MODEL=${MODEL/ context)/)}
-AGENT_NAME=$(jqv '.agent.name')
+EFFORT=$(jqv '.effort.level')
 
 # ---------------------------------------------------------------------------
 # Context percentage
@@ -150,12 +127,18 @@ if (( ${#BRANCH} > BRANCH_MAX )); then
 fi
 
 # ---------------------------------------------------------------------------
-# Progress bar — a rounded capsule with the reading centred inside it
+# Bars — a filled run of ━ and an empty run of ─, no background paint
 # ---------------------------------------------------------------------------
-BAR_WIDTH=18
+threshold_color() {
+    if   (( $1 >= 90 )); then printf '%s' "$RGB_RED"
+    elif (( $1 >= 70 )); then printf '%s' "$RGB_ORANGE"
+    else                      printf '%s' "$RGB_GREEN"
+    fi
+}
 
+# build_bar <pct> <width> — a coloured run of filled/empty cells
 build_bar() {
-    local pct=$1 w=$BAR_WIDTH
+    local pct=$1 w=$2
     local filled=$(( pct * w / 100 ))
 
     # Never round a non-zero reading down to an empty bar, or a sub-100 one up
@@ -164,34 +147,11 @@ build_bar() {
     if (( pct < 100 && filled >= w )); then filled=$(( w - 1 )); fi
     if (( filled > w )); then filled=$w; fi
 
-    local color
-    if   (( pct >= 90 )); then color="$RGB_RED"
-    elif (( pct >= 70 )); then color="$RGB_ORANGE"
-    else                       color="$RGB_GREEN"
-    fi
-
-    # Centre the reading across the whole track and colour it per cell, so the
-    # label straddles the fill boundary with each half in its own contrast.
-    local label=" ${pct}% " pad text
-    pad=$(( (w - ${#label}) / 2 ))
-    printf -v text '%*s%s%*s' "$pad" '' "$label" "$(( w - pad - ${#label} ))" ''
-    text="${text:0:w}"
-
-    # Precomputed so the per-cell loop spawns nothing.
-    local on="${ESC}[48;2;${color}m${ESC}[38;2;${RGB_INK}m"
-    local off="${ESC}[48;2;${RGB_TRACK}m${ESC}[38;2;${RGB_DIR}m"
-
-    # No rounded caps here. On a filled bar the cap picks up whichever colour
-    # its end happens to be, so the capsule reads as part of the reading rather
-    # than as a frame around it — and at the fill boundary the two ends stop
-    # matching each other entirely. The block run is its own shape.
+    local color; color=$(threshold_color "$pct")
+    local empty=$(( w - filled ))
     local out=""
-    local i
-    for (( i = 0; i < w; i++ )); do
-        if (( i < filled )); then out+="${on}${text:i:1}"
-        else                      out+="${off}${text:i:1}"
-        fi
-    done
+    (( filled > 0 )) && out+="${ESC}[38;2;${color}m$(printf '━%.0s' $(seq 1 "$filled"))"
+    (( empty > 0 )) && out+="${ESC}[38;2;${RGB_TRACK}m$(printf '─%.0s' $(seq 1 "$empty"))"
     out+="$R"
     printf '%s' "$out"
 }
@@ -235,60 +195,72 @@ fmt_reset() {
     fi
 }
 
-# Same thresholds as the context bar, so the colours mean one thing throughout.
-limit_color() {
-    if   (( $1 >= 90 )); then printf '%s' "$RGB_RED"
-    elif (( $1 >= 70 )); then printf '%s' "$RGB_ORANGE"
-    else                      printf '%s' "$RGB_GREEN"
-    fi
-}
-
-# icon, json key -> a finished capsule, or nothing when the window is absent
-limit_seg() {
-    local icon="$1" window="$2" raw pct at reset text
+# label, json key, bar width -> a finished "label bar pct% reset" segment, or
+# nothing when the window is absent from the payload
+quota_seg() {
+    local label="$1" window="$2" width="$3" raw pct at reset color text
     raw=$(jqv ".rate_limits.${window}.used_percentage")
     [[ -n "$raw" ]] || return 0
     pct=$(printf '%.0f' "$raw" 2>/dev/null) || return 0
+    if (( pct > 100 )); then pct=100; fi
+    if (( pct < 0 )); then pct=0; fi
 
-    text="${icon}${pct}%"
+    color=$(threshold_color "$pct")
+    text="$(seg "$RGB_PLAN" "${label} ")$(build_bar "$pct" "$width") $(seg "$color" "${pct}%")"
+
     at=$(jqv ".rate_limits.${window}.resets_at")
     reset=$(fmt_reset "$at")
-    [[ -n "$reset" ]] && text+=" ${reset}"
+    [[ -n "$reset" ]] && text+=" $(seg "$color" "$reset")"
 
-    seg "$(limit_color "$pct")" "$text"
+    printf '%s' "$text"
 }
 
 # ---------------------------------------------------------------------------
-# Line 1 — model, context, where you are
+# Line 1 — [project]:branch · model / effort · plan, hard-capped at 80
+# printable columns since the payload carries no terminal width.
 # ---------------------------------------------------------------------------
-LINE1="$(seg "$RGB_MODEL" "${I_MODEL}${MODEL}")${GAP}"
+LINE1=""
+LINE1_LEN=0
+LINE1_BUDGET=80
 
-# The bar sits second, right behind the model. It is fixed-width, so everything
-# ahead of it is fixed-width too and the reading lands in the same column every
-# frame — the path is what absorbs the variation, out at the ragged end.
-LINE1+="$(build_bar "$USED_PCT")${GAP}"
+add1() {
+    local color="$1" text="$2"
+    (( LINE1_LEN >= LINE1_BUDGET )) && return 0
+    local remaining=$(( LINE1_BUDGET - LINE1_LEN ))
+    if (( ${#text} > remaining )); then
+        if (( remaining <= 1 )); then
+            text=""
+        else
+            text="${text:0:$(( remaining - 1 ))}"$'…'
+        fi
+    fi
+    [[ -z "$text" ]] && return 0
+    LINE1+="$(seg "$color" "$text")"
+    LINE1_LEN=$(( LINE1_LEN + ${#text} ))
+}
 
+# The brackets frame the project name, so they are skipped along with it when
+# the payload carries no directory at all — an empty "[]" frames nothing.
 if [[ -n "$DIR_STR" ]]; then
-    LINE1+="${ESC}[38;2;${RGB_DIR}m${I_DIR}${DIR_STR} "
-    LINE1+="${ESC}[38;2;${RGB_BRANCH}m${I_BRANCH}${BRANCH}${R}"
-else
-    LINE1+="$(seg "$RGB_BRANCH" "${I_BRANCH}${BRANCH}")"
+    add1 "$RGB_PLAN" "["
+    add1 "$RGB_DIR" "$DIR_STR"
+    add1 "$RGB_PLAN" "]:"
 fi
+add1 "$RGB_BRANCH" "$BRANCH"
+add1 "$RGB_PLAN" " · "
+add1 "$RGB_MODEL" "$MODEL"
+[[ -n "$EFFORT" ]] && add1 "$RGB_PLAN" " / ${EFFORT}"
+[[ -n "$PLAN_STR" ]] && add1 "$RGB_PLAN" " · ${PLAN_STR}"
 
 # ---------------------------------------------------------------------------
-# Line 2 — agent, quota, plan
-#
-# These sit below the fold because line 1 already spends its 80-column budget
-# on the model name, the project path and a full-width bar. Every part here is
-# optional, so line 2 is emitted only when something lands on it.
+# Line 2 — ctx bar · 5h quota · 7d quota. Always shows ctx; a quota segment is
+# omitted entirely when that window is absent from the payload.
 # ---------------------------------------------------------------------------
 PARTS=()
-[[ -n "$AGENT_NAME" ]] && PARTS+=("$(seg "$RGB_AGENT" "${I_AGENT}${AGENT_NAME}")")
+PARTS+=("$(seg "$RGB_PLAN" "ctx ")$(build_bar "$USED_PCT" 18) $(seg "$(threshold_color "$USED_PCT")" "${USED_PCT}%")")
 
-L5=$(limit_seg "$I_5H" five_hour); [[ -n "$L5" ]] && PARTS+=("$L5")
-L7=$(limit_seg "$I_7D" seven_day); [[ -n "$L7" ]] && PARTS+=("$L7")
-
-[[ -n "$PLAN_STR" ]] && PARTS+=("$(seg "$RGB_PLAN" "${I_PLAN}${PLAN_STR}")")
+L5=$(quota_seg "5h" five_hour 8); [[ -n "$L5" ]] && PARTS+=("$L5")
+L7=$(quota_seg "7d" seven_day 8); [[ -n "$L7" ]] && PARTS+=("$L7")
 
 # ---------------------------------------------------------------------------
 # Output
