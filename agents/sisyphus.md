@@ -1,7 +1,7 @@
 ---
 name: sisyphus
 description: "Main orchestrator with full delegation capabilities. Routes tasks to specialized agents based on intent classification. Never does direct work when specialists are available."
-model: opus
+model: fable
 color: red
 tools:
   - Read
