@@ -161,9 +161,10 @@ check "does not copy agents/skills/hooks" "
   ./configure.sh --yes --target '$CFG' > /dev/null &&
   [[ ! -d '$CFG/agents' && ! -d '$CFG/skills' && ! -d '$CFG/hooks' ]]"
 check "writes permissions"        "jq -e '.permissions.allow | index(\"Bash(gh *)\")' '$CFG/settings.json'"
-check "writes the output style"   "[[ -f '$CFG/output-styles/oh-my-claudecode.md' ]]"
-check "style matches the repo copy" \
-      "cmp -s output-styles/oh-my-claudecode.md '$CFG/output-styles/oh-my-claudecode.md'"
+# The output style is plugin-shipped (force-for-plugin) and must not be copied.
+check "does not copy the output style" "[[ ! -d '$CFG/output-styles' ]]"
+check "plugin style carries force-for-plugin" \
+      "grep -q '^force-for-plugin: true' output-styles/oh-my-claudecode.md"
 
 check "installs and wires the status line" "
   jq -e '.statusLine.command == \"$CFG/statusline.sh\"' '$CFG/settings.json' &&
@@ -313,6 +314,28 @@ check "--no-statusline skips it but still writes permissions" "
   [[ ! -f '$CFG6/statusline.sh' ]] &&
   ! jq -e '.statusLine' '$CFG6/settings.json' > /dev/null 2>&1 &&
   jq -e '.permissions.allow | length > 0' '$CFG6/settings.json'"
+
+# A copy left by an earlier configure.sh shadows the plugin's style. It must stay
+# until an installed plugin copy with the flag can take over, then go.
+CFG7="$SB/cfg7"; mkdir -p "$CFG7/output-styles"
+cp output-styles/oh-my-claudecode.md "$CFG7/output-styles/"
+check "keeps a shadow style when the installed plugin lacks the flag" "
+  out=\$(./configure.sh --yes --target '$CFG7' 2>&1) &&
+  [[ -f '$CFG7/output-styles/oh-my-claudecode.md' ]] &&
+  grep -q 'shadows' <<< \"\$out\""
+CACHE7="$CFG7/plugins/cache/oh-my-claudecode/oh-my-claudecode/9.9.9/output-styles"
+mkdir -p "$CACHE7" && cp output-styles/oh-my-claudecode.md "$CACHE7/"
+check "removes the shadow style once the installed plugin has the flag" "
+  ./configure.sh --yes --target '$CFG7' > /dev/null 2>&1 &&
+  [[ ! -e '$CFG7/output-styles/oh-my-claudecode.md' ]]"
+CFG8="$SB/cfg8"; mkdir -p "$CFG8/output-styles"
+cp output-styles/oh-my-claudecode.md "$CFG8/output-styles/"
+check "revert removes a shadow style regardless" "
+  ./configure.sh --revert --yes --target '$CFG8' > /dev/null 2>&1 &&
+  [[ ! -e '$CFG8/output-styles/oh-my-claudecode.md' ]]"
+check "--no-style is accepted as an obsolete no-op" "
+  out=\$(./configure.sh --dry-run --no-style --target '$CFG8' 2>&1) &&
+  grep -q 'obsolete' <<< \"\$out\""
 
 check "dry-run writes nothing" "
   rm -rf '$SB/cfg4' && mkdir -p '$SB/cfg4' &&

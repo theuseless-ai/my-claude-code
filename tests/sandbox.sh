@@ -53,7 +53,7 @@ fi
 
 if [[ $RUN_CONFIGURE -eq 1 ]]; then
     "$REPO/configure.sh" --yes --target "$SANDBOX"
-    # configure.sh installs the output style; select it for this session.
+    # The plugin ships the output style (loaded via --plugin-dir); select it here.
     tmp=$(mktemp)
     jq '.outputStyle = "oh-my-claudecode"' "$SANDBOX/settings.json" > "$tmp"
     mv "$tmp" "$SANDBOX/settings.json"

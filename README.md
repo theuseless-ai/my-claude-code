@@ -61,16 +61,20 @@ install still present — see below.
 
 ## Configure
 
-Three pieces of config **cannot** travel inside a plugin, verified against Claude
-Code 2.1.235:
+Two pieces of config **cannot** travel inside a plugin, verified against Claude
+Code 2.1.235 and not retested since:
 
 | | Why a plugin can't ship it |
 |---|---|
 | Permission rules | A plugin's `settings.json` honours only `agent` and `subagentStatusLine`; a `permissions` block in it is silently ignored — confirmed both through `--plugin-dir` and after a real marketplace install |
-| The output style | A plugin's `output-styles/` never registers, with or without `force-for-plugin` |
 | The status line | `statusLine` is not among the keys a plugin's `settings.json` honours |
 
-`./configure.sh` fills exactly those three:
+A third gap, the output style, closed on 2.1.263: the plugin's copy registers on
+its own because it sets `force-for-plugin: true`. `configure.sh` no longer copies
+it, and removes a copy left by an earlier run once the installed plugin carries the
+flag (a user-level copy shadows the plugin's).
+
+`./configure.sh` fills exactly those two:
 
 ```bash
 ./configure.sh --dry-run        # show every change, write nothing
@@ -87,7 +91,7 @@ would shadow it. That is exactly what the pre-2.0 installer got wrong.
 Your existing settings are preserved: permissions are unioned rather than replaced,
 the file is backed up first, and a second run changes nothing. A `statusLine` you
 already point somewhere else is never taken over — the script warns and skips. Pass
-`--no-style` or `--no-statusline` to opt out of either.
+`--no-statusline` to skip the status line.
 
 ### Upgrading from 1.x
 
@@ -109,8 +113,8 @@ It only removes files the old installer recorded as its own, and never touches
 ```
 
 or `claude plugin update oh-my-claudecode` from the shell. Re-run `./configure.sh`
-after a `git pull` if the permissions, style or status line have changed; it is a
-no-op when they haven't.
+after a `git pull` if the permissions or status line have changed; it is a no-op
+when they haven't.
 
 ## Turning the orchestration on
 
@@ -126,15 +130,19 @@ happens from the first message.
 
 ### Output style
 
-`configure.sh` installs it. If you skipped that or used `--no-style`, copy it by
-hand — plugin-shipped output styles do not register:
+The plugin ships it, and on Claude Code 2.1.263 or later it registers on its own
+(the style sets `force-for-plugin: true`). Pick **oh-my-claudecode** under
+`/config` and Output style. A copy left in `~/.claude/output-styles/` by an earlier
+`configure.sh` shadows the plugin's; re-running `./configure.sh` removes it once the
+installed plugin carries the flag.
+
+On releases before 2.1.263 plugin-shipped styles do not register, so copy it by
+hand and remove that copy again after upgrading:
 
 ```bash
 mkdir -p ~/.claude/output-styles
 cp output-styles/oh-my-claudecode.md ~/.claude/output-styles/
 ```
-
-Then pick **oh-my-claudecode** under `/config` and Output style.
 
 ## Agent Roster
 

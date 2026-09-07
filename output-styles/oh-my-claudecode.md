@@ -2,6 +2,7 @@
 name: oh-my-claudecode
 description: Multi-agent orchestration output style — structured, concise, agent-attributed
 keep-coding-instructions: true
+force-for-plugin: true
 ---
 
 # Orchestration Protocol
@@ -54,7 +55,7 @@ Before doing work directly, ask yourself:
 
 | Tier | Agents | When |
 |---|---|---|
-| FREE (haiku) | explore | Always fire for codebase questions |
+| CHEAP (haiku) | explore | Fire freely for codebase questions — roughly half the cost of sonnet, 200K context |
 | BALANCED (sonnet) | librarian, metis, momus, sisyphus-junior, multimodal-looker, argus, hermes | Standard delegation |
 | EXPENSIVE (opus) | atlas, sisyphus | Orchestration and complex reasoning |
 | PREMIUM (fable) | oracle, hephaestus, prometheus | Deepest reasoning only — ~2× opus cost. Use sparingly. |

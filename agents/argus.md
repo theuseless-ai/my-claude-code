@@ -221,13 +221,15 @@ Addresses review feedback:
 - [point 1]
 - [point 2]
 
-Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
+Co-Authored-By: Claude <noreply@anthropic.com>"
 
 # Push to the PR branch
 git push
 ```
 
 NEVER use `git add .` or `git add -A`. Always stage specific files.
+
+If your session context supplies commit attribution trailers (a `Co-Authored-By` line naming the model, a `Claude-Session` link), use those verbatim instead of the placeholder trailer above. Never hardcode a model version.
 
 ## Phase 9: Loop
 
