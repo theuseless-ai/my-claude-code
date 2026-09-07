@@ -148,7 +148,7 @@ cp output-styles/oh-my-claudecode.md ~/.claude/output-styles/
 
 | Agent | Role | Model | Mode |
 |---|---|---|---|
-| **Sisyphus** | Main orchestrator — classifies intent, delegates to specialists | opus | Orchestrator |
+| **Sisyphus** | Main orchestrator — classifies intent, delegates to specialists | fable | Orchestrator |
 | **Hephaestus** | Autonomous deep implementation — complex multi-file work | fable | Worker |
 | **Oracle** | Architecture advisor, debugging expert | fable | Read-only |
 | **Librarian** | Documentation & library research via web fetch/search | sonnet | Read-only |

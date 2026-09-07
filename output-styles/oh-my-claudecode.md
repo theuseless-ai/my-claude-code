@@ -57,8 +57,8 @@ Before doing work directly, ask yourself:
 |---|---|---|
 | CHEAP (haiku) | explore | Fire freely for codebase questions — roughly half the cost of sonnet, 200K context |
 | BALANCED (sonnet) | librarian, metis, momus, sisyphus-junior, multimodal-looker, argus, hermes | Standard delegation |
-| EXPENSIVE (opus) | atlas, sisyphus | Orchestration and complex reasoning |
-| PREMIUM (fable) | oracle, hephaestus, prometheus | Deepest reasoning only — ~2× opus cost. Use sparingly. |
+| EXPENSIVE (opus) | atlas | Orchestration and complex reasoning |
+| PREMIUM (fable) | sisyphus, oracle, hephaestus, prometheus | Deepest reasoning only — ~2× opus cost. Use sparingly. |
 
 ## Anti-Patterns — NEVER Do These
 
