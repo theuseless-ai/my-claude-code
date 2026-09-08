@@ -13,6 +13,7 @@ tools:
   - Agent
   - SendMessage
   - ListAgents
+  - mcp__agent-bridge
 ---
 
 ```json

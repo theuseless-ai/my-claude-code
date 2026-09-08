@@ -40,6 +40,11 @@ scripts/pm.sh                    # project-board CLI used by the gh-* skills
 - **Every agent's `tools:` list includes `SendMessage` and `ListAgents`.** An
   explicit `tools:` list is an allowlist, so omitting them leaves an agent unable to
   report to `main` or see its peers. Keep them on any agent added to the roster.
+- **`sisyphus` runs as the *main session* (`claude --agent sisyphus`), so its `tools:`
+  allowlist also gates MCP tools.** It must list `mcp__agent-bridge` or the
+  agent-bridge channel's `team_send`/`team_peers` never reach the model, even though
+  the server's instructions and `<channel>` events still arrive. Add any other MCP
+  server the main session needs the same way (`mcp__<server>`).
 - **Hooks emit `hookSpecificOutput`**, not the legacy `{"decision": "block"}`.
 - **A plugin's `output-styles/` registers only with `force-for-plugin: true`.**
   Verified on 2.1.263 through both `--plugin-dir` and a marketplace install: without
